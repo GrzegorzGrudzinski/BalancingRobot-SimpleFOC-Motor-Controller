@@ -1,0 +1,17 @@
+/*
+    motor.h
+
+*/
+
+#pragma once
+
+#include <SimpleFOC.h>
+#include "config.h"
+// #include "comm.h" // for sys_error flag
+
+extern BLDCMotor motor1;
+
+void motors_setup();
+void motors_loop_task();
+void motors_move(float target1, float target2);
+void motors_stop(float target);

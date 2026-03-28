@@ -11,7 +11,7 @@ typedef enum {
     ERR_COMMUNICATION,
     ERR_INV_COMMAND,
     ERR_IS_NAN,
-  ERR_COM_TIMEOUT
+    ERR_COM_TIMEOUT
 } error_states_t;
 
 extern error_states_t error_state;
@@ -24,6 +24,7 @@ extern bool sys_error;
 #define TX_PIN 17  // ESP32 TX Pin
 #define UART_NR 2
 
+#define COMM_TIMEOUT_MS 500 // 0.5 sec
 
 // =====================================
 // ENCODERS
@@ -33,7 +34,7 @@ extern bool sys_error;
 #define ENC1_PPR    1000
 
 // =====================================
-// MOTORS
+// MOTORS & DRIVERS
 // =====================================
 #define M1_PP   7
 #define M1_A    26
@@ -46,6 +47,15 @@ extern bool sys_error;
 #define M2_B    33
 #define M2_C    25
 #define M2_EN   22
+
+#define DRIVER_V_LIMIT 6
+#define MOT_V_LIMIT 1.0
+#define MOT_V_ALIGN_LIMIT 0.9
+#define MOT_TORQUE_CTRL_TYPE TorqueControlType::voltage
+
+#define MOT_PARAMETERS_ON 0
+#define MOT_KV  360.0
+#define MOT_R   0.27
 
 // =====================================
 // GENERAL

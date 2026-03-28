@@ -1,7 +1,11 @@
+/*
+  motor.cpp
+*/
+
 #include "motor.h"
 
-BLDCMotor motor1 = BLDCMotor(M1_PP);
-BLDCDriver3PWM driver1 = BLDCDriver3PWM(M1_A, M1_B, M1_C, M1_EN);
+BLDCMotor motor1 = BLDCMotor(M2_PP);
+BLDCDriver3PWM driver1 = BLDCDriver3PWM(M2_A, M2_B, M2_C, M2_EN);
 Encoder encoder1 = Encoder(ENC1_A, ENC1_B, ENC1_PPR);
 
 // IRAM_ATTR ????
@@ -20,7 +24,7 @@ void motors_setup() {
 
   // driver init
   driver1.voltage_power_supply = 12;
-  driver1.voltage_limit = 6;
+  driver1.voltage_limit = DRIVER_V_LIMIT;
   if(!driver1.init()){
     Serial.println("Driver init failed!");
     sys_error = true;
@@ -29,14 +33,15 @@ void motors_setup() {
   }
   motor1.linkDriver(&driver1);
   
-  // motor1.phase_resistance = 0.27f; 
-  // motor1.KV_rating = 360.0f;       
-
-  motor1.voltage_limit = 1.0;
-  motor1.voltage_sensor_align = 1.0; 
+  #if MOT_PARAMETERS_ON // 0
+    motor1.phase_resistance = MOT_R; 
+    motor1.KV_rating = MOT_KV;       
+  #endif
+  motor1.voltage_limit = MOT_V_LIMIT;
+  motor1.voltage_sensor_align = MOT_V_ALIGN_LIMIT; 
   motor1.target = 0.0;
 
-  motor1.torque_controller = TorqueControlType::voltage;
+  motor1.torque_controller = MOT_TORQUE_CTRL_TYPE;
   motor1.controller = MotionControlType::torque;
 
   if(!motor1.init() || !motor1.initFOC()){

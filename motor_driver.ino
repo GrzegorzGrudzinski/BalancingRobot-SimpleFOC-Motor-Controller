@@ -1,3 +1,8 @@
+/*
+  motor_driver.ino
+  (main)
+*/
+
 #include <SimpleFOC.h>
 #include "config.h"
 #include "comm.h"
@@ -8,9 +13,10 @@ typedef enum {
   INIT,
   WORK,
   ERROR
-} robot_states_t;
+} robot_states_t; 
 
 robot_states_t state = CONNECT;
+void LookForErrors();
 
 float mot1_target = 0.0;
 float mot2_target = 0.0; // Na przyszłość, gdy odkomentujesz drugi silnik
@@ -51,43 +57,58 @@ void loop() {
   motors_move(mot1_target, 0.0);
   process_commands();
   command.run();
-  
+
   switch (state) {
-    case CONNECT:
-    /*
-      wait for connection with master
-    */
+    case CONNECT: // wait for connection with master
       mot1_target = 0.0;
       mot2_target = 0.0;
-
+      connection_timer();
       if (rx_data.command == CMD_INIT){
         state = INIT;
       }
       break;
-    case INIT:
-    /*
-      wait until every component is ready
-      (implement timeout)
-    */
-      if (rx_data.command == CMD_START)
+    case INIT: // wait until every component is ready  (implement timeout)
+      mot1_target = 0.0;
+      mot2_target = 0.0;
+      if (rx_data.command == CMD_INIT)
         state = WORK;
+        last_valid_msg_time = millis(); // reset timer while master is getting ready
       break;
-    case WORK:
-    /*
-      normal operation
-    */
+    case WORK: // normal operation
       work();
       break;
-    case ERROR:
-    /*
-      error state - 
-    */
+    case ERROR: // error state
       mot1_target = 0.0;
       mot2_target = 0.0;
       break;
   }
-  telemetry();
 
+  if (rx_msg_received || (state == CONNECT && connection_timer_flag)) {
+    uint8_t status_to_send;
+    switch (state) {
+      case CONNECT: status_to_send = CMD_HELLO_MOTOR; break;
+      case INIT:    status_to_send = CMD_START;       break;
+      case WORK:    status_to_send = CMD_SET_VAL;     break; 
+      default:      status_to_send = CMD_STOP;        break;
+    }
+
+    // Send status to master
+    send_feedback(status_to_send, mot1_target, 0.0);
+    
+    rx_msg_received = false; // wait for the next command
+    connection_timer_flag = false;
+  }
+  telemetry();
+  
+  // DEBUG - MOVE UP!!!
+  LookForErrors();
+
+}
+
+void LookForErrors() {
+  if (sys_error || (error_state != ERR_OK) || comm_timeout) {
+    state = ERROR;
+  }
 }
 
 void work () {
@@ -120,8 +141,6 @@ void work () {
                 // comm_timeout = true;
                 break;
         }
-
-        rx_msg_received = false; // wait for the next command
     }
 
     if (millis() - last_valid_msg_time > COMM_TIMEOUT_MS) {

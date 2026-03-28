@@ -1,14 +1,24 @@
+#include "esp32-hal.h"
+/*
+    comm.cpp
+*/
+
 #include "comm.h"
+#include <Arduino.h>
 
 HardwareSerial SerialCTRL(UART_NR); 
 
 MotorPacket_t rx_data = {0}; // 
+FeedbackPacket_t tx_data = {0};
 
 uint8_t rx_buffer[FRAME_SIZE]; 
 volatile bool rx_msg_received = false; 
 
 uint32_t last_valid_msg_time = 0;
 bool comm_timeout = false;
+uint32_t last_connection_time = 0;
+volatile bool connection_timer_flag = false; 
+
 
 error_states_t error_state = ERR_OK;
 bool sys_error = false;
@@ -17,8 +27,17 @@ void comm_init() {
   SerialCTRL.begin(115200, SERIAL_8N1, RX_PIN, TX_PIN);
 }
 
+void connection_timer() {
+  if (millis() - last_connection_time > 50) {
+      connection_timer_flag = true;
+      last_connection_time = millis();
+  }
+}
+
 uint8_t calculate_checksum(void* data, size_t length)
 {
+    if(length==0 ) return 0;
+
     uint8_t checksum = 0;
     uint8_t* byte = (uint8_t*)data;
 
@@ -90,4 +109,17 @@ const char* getErrorText(error_states_t state)
         case ERR_COM_TIMEOUT:   return "TIMEOUT";
         default:                return "UNKNOWN_ERROR";
     }
+}
+
+
+void send_feedback(uint8_t status_cmd, float mot1_v, float mot2_v) {
+    tx_data.startByte = 0xBB;
+    tx_data.status = status_cmd;
+    tx_data.value1 = mot1_v;
+    tx_data.value2 = mot2_v; 
+
+    // Używamy &tx_data, a nie tx_packet
+    tx_data.checksum = calculate_checksum((uint8_t*)&tx_data, sizeof(FeedbackPacket_t));
+
+    SerialCTRL.write((uint8_t*)&tx_data, sizeof(FeedbackPacket_t));
 }

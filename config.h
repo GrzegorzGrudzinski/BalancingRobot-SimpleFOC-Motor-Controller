@@ -33,27 +33,36 @@ extern bool sys_error;
 #define ENC1_B  19
 #define ENC1_PPR    1000
 
+#define ENC2_A  5
+#define ENC2_B  23
+#define ENC2_PPR    1000
+
 // =====================================
 // MOTORS & DRIVERS
 // =====================================
 #define M1_PP   7
-#define M1_A    26
-#define M1_B    27
-#define M1_C    14
-#define M1_EN   12
+#define M1_A    32
+#define M1_B    33
+#define M1_C    25
+#define M1_EN   22
 
 #define M2_PP   7
-#define M2_A    32
-#define M2_B    33
-#define M2_C    25
-#define M2_EN   22
+#define M2_A    26
+#define M2_B    27
+#define M2_C    14
+#define M2_EN   12
 
 #define DRIVER_V_LIMIT 6
+#define MOT_A_LIMIT 1.5
 #define MOT_V_LIMIT 1.0
 #define MOT_V_ALIGN_LIMIT 0.9
-#define MOT_TORQUE_CTRL_TYPE TorqueControlType::voltage
+// #define MOT_TORQUE_CTRL_TYPE TorqueControlType::estimated_current
+// #define MOT_TORQUE_CTRL_TYPE TorqueControlType::voltage
 
-#define MOT_PARAMETERS_ON 0
+#define MOT_CURRENT_CONTROL 1
+#define MOT_VOLTAGE_CONTROL 0
+
+#define MOT_CONTROL_TYPE MOT_CURRENT_CONTROL
 #define MOT_KV  360.0
 #define MOT_R   0.27
 

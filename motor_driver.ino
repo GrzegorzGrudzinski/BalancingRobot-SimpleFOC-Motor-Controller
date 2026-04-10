@@ -37,6 +37,24 @@ uint32_t last_telemetry_time = 0;
 // =====================================
 
 void setup() { 
+  pinMode(22, OUTPUT);     // Pin EN dla Drivera 2
+  digitalWrite(22, LOW);   // Twarde wyłączenie Drivera 2 (przed startem)
+  pinMode(32, OUTPUT);     // Pin EN dla Drivera 2
+  digitalWrite(32, LOW);   // Twarde wyłączenie Drivera 2 (przed startem)
+  pinMode(33, OUTPUT);     // Pin EN dla Drivera 2
+  digitalWrite(33, LOW);   // Twarde wyłączenie Drivera 2 (przed startem)
+  pinMode(25, OUTPUT);     // Pin EN dla Drivera 2
+  digitalWrite(25, LOW);   // Twarde wyłączenie Drivera 2 (przed startem)
+
+  pinMode(12, OUTPUT);     // Pin EN dla Drivera 2
+  digitalWrite(12, LOW);   // Twarde wyłączenie Drivera 2 (przed startem)
+  pinMode(26, OUTPUT);     // Pin EN dla Drivera 2
+  digitalWrite(26, LOW);   // Twarde wyłączenie Drivera 2 (przed startem)
+  pinMode(27, OUTPUT);     // Pin EN dla Drivera 2
+  digitalWrite(27, LOW);   // Twarde wyłączenie Drivera 2 (przed startem)
+  pinMode(14, OUTPUT);     // Pin EN dla Drivera 2
+  digitalWrite(14, LOW);   // Twarde wyłączenie Drivera 2 (przed startem)
+
   Serial.begin(115200);
   SimpleFOCDebug::enable(&Serial);
  
@@ -54,7 +72,7 @@ void setup() {
 void loop() {
   // main FOC algorithm function
   motors_loop_task();
-  motors_move(mot1_target, 0.0);
+  motors_move(mot1_target, mot2_target);
   process_commands();
   command.run();
 
@@ -70,9 +88,10 @@ void loop() {
     case INIT: // wait until every component is ready  (implement timeout)
       mot1_target = 0.0;
       mot2_target = 0.0;
-      if (rx_data.command == CMD_INIT)
+      if (rx_data.command == CMD_INIT) {
         state = WORK;
         last_valid_msg_time = millis(); // reset timer while master is getting ready
+      }
       break;
     case WORK: // normal operation
       work();
@@ -175,13 +194,25 @@ void telemetry() {
             if (!sys_error) {
                 Serial.print("Mot 1 target: ");
                 Serial.print(mot1_target);
+                Serial.print("\tMot1 voltage q: ");
+                Serial.print(motor1.voltage.q);
+                Serial.print("\tMot1 voltage d: ");
+                Serial.print(motor1.voltage.d);
                 Serial.print("\tMot1 velocity: ");
-                Serial.println(motor1.shaft_velocity);
+                Serial.print(motor1.shaft_velocity);
+                Serial.print("\tMot1 angle: ");
+                Serial.print(motor1.shaft_angle);
 
-                // Serial.print("Mot 2 target: ");
-                // Serial.print(mot2_target);
-                // Serial.print("\tMot2 angle: ");
-                // Serial.println(motor2.shaft_angle);
+                Serial.print("\t\tMot 2 target: ");
+                Serial.print(mot2_target);
+                Serial.print("\tMot2 voltage q: ");
+                Serial.print(motor2.voltage.q);
+                Serial.print("\tMot2 voltage d: ");
+                Serial.print(motor2.voltage.d);
+                Serial.print("\tMot2 velocity: ");
+                Serial.print(motor2.shaft_velocity);
+                Serial.print("\tMot2 angle: ");
+                Serial.println(motor2.shaft_angle);
             }
             else {
                 Serial.print("ERROR\t");
@@ -190,8 +221,12 @@ void telemetry() {
                 Serial.print(rx_data.command, HEX);
                 Serial.print(" ");
                 Serial.print(rx_data.value1);
-                Serial.print("\tTarget");
-                Serial.println(mot1_target);
+                Serial.print(" ");
+                Serial.print(rx_data.value2);
+                Serial.print("\tTarget 1 ");
+                Serial.print(mot1_target);
+                Serial.print("\tTarget 2 ");
+                Serial.println(mot2_target);
             }
         }
     }

@@ -19,6 +19,26 @@ void IRAM_ATTR doB1(){ encoder1.handleB(); }
 void IRAM_ATTR doA2(){ encoder2.handleA(); }
 void IRAM_ATTR doB2(){ encoder2.handleB(); }
 
+void set_pins_low_setup() {
+  pinMode(22, OUTPUT);     // Pin EN dla Drivera 2
+  digitalWrite(22, LOW);   // Twarde wyłączenie Drivera 2 (przed startem)
+  pinMode(32, OUTPUT);     // Pin EN dla Drivera 2
+  digitalWrite(32, LOW);   // Twarde wyłączenie Drivera 2 (przed startem)
+  pinMode(33, OUTPUT);     // Pin EN dla Drivera 2
+  digitalWrite(33, LOW);   // Twarde wyłączenie Drivera 2 (przed startem)
+  pinMode(25, OUTPUT);     // Pin EN dla Drivera 2
+  digitalWrite(25, LOW);   // Twarde wyłączenie Drivera 2 (przed startem)
+
+  pinMode(12, OUTPUT);     // Pin EN dla Drivera 2
+  digitalWrite(12, LOW);   // Twarde wyłączenie Drivera 2 (przed startem)
+  pinMode(26, OUTPUT);     // Pin EN dla Drivera 2
+  digitalWrite(26, LOW);   // Twarde wyłączenie Drivera 2 (przed startem)
+  pinMode(27, OUTPUT);     // Pin EN dla Drivera 2
+  digitalWrite(27, LOW);   // Twarde wyłączenie Drivera 2 (przed startem)
+  pinMode(14, OUTPUT);     // Pin EN dla Drivera 2
+  digitalWrite(14, LOW);   // Twarde wyłączenie Drivera 2 (przed startem)
+}
+
 void motors_setup() {
 
   // initialize encoder sensor hardware
@@ -110,12 +130,109 @@ void motors_loop_task() {
 }
 
 void motors_move(float target1, float target2) {
+    target1 = constrain(target1, -MOT_LIMIT, MOT_LIMIT);
+    target2 = constrain(target2, -MOT_LIMIT, MOT_LIMIT);
+    
     motor1.move(target1);
     motor2.move(target2);
-    
 }
 
 void motors_stop(){
     motor1.move(0.0);
     motor2.move(0.0);
 }
+
+
+#define K_SYNC 0.3 // Zmien w zaleznosci od potrzeb
+
+float motors_synchronize(float target1, float target2) {
+    static float target_angle_diff = 0.0;
+    static bool is_turning = true;
+    float correction = 0.0;
+
+    if (abs(target1 - target2) < 0.05) {
+        if (is_turning) {
+            target_angle_diff = motor1.shaft_angle - motor2.shaft_angle;
+            is_turning = false;
+        }
+
+        float current_diff = motor1.shaft_angle - motor2.shaft_angle;
+        float angle_error = current_diff - target_angle_diff;
+
+        correction = angle_error * K_SYNC;
+        correction = constrain(correction, -0.5, 0.5);
+
+    } else {
+        is_turning = true;
+    }
+    
+    return correction;
+}
+
+void motors_sync_move(float target1, float target2, bool enable_sync) {
+    float m1_out = target1;
+    float m2_out = target2;
+
+    if ( enable_sync ) {
+        float sync_corr = motors_synchronize(target1, target2);
+        m1_out -= sync_corr;
+        m2_out += sync_corr;
+    }
+
+    m1_out = constrain(m1_out, -MOT_LIMIT, MOT_LIMIT);
+    m2_out = constrain(m2_out, -MOT_LIMIT, MOT_LIMIT);
+
+    motors_move(m1_out, m2_out);
+}
+
+
+void check_motors_health(float target1, float target2, bool is_working_flag) {
+    static uint32_t stall_timer = millis();
+    static uint32_t spin_error_timer = millis();
+
+    if ( !is_working_flag ) {
+        stall_timer = millis();
+        spin_error_timer = millis();
+        return; 
+    }
+
+    float v1 = motor1.shaft_velocity;
+    float v2 = motor2.shaft_velocity;
+
+    // --------------------------------------------------------
+    // 1. Stall Detection
+    // --------------------------------------------------------
+    bool is_pushing_hard = (abs(target1) > STALL_TORQUE_MIN) || (abs(target2) > STALL_TORQUE_MIN);  // are motors supposed to run?
+    bool is_not_moving = (abs(v1) < STALL_VEL_MAX) || (abs(v2) < STALL_VEL_MAX);                            // are motors stationary when supposed to move?
+
+    if (is_pushing_hard && is_not_moving) {
+        if (millis() - stall_timer > STALL_TIMEOUT_MS) {
+            sys_error = true;
+            error_state = ERR_MOTOR_STALL;
+        }
+    } else {
+        stall_timer = millis(); // Timer reset (if everything is ok)
+    }
+
+    // --------------------------------------------------------
+    // 2. Desync Protection
+    // --------------------------------------------------------
+    float vel_difference = abs(v1 - v2);
+    if (vel_difference > MAX_DESYNC_VEL_RAD) {
+        sys_error = true;
+        error_state = ERR_DESYNC;
+    }
+
+    // --------------------------------------------------------
+    // 3. Counter-Rotation / Yaw Spin
+    // --------------------------------------------------------
+    if ((v1 * v2 < 0) && (abs(v1) > MAX_OPPOSITE_VEL_RAD) && (abs(v2) > MAX_OPPOSITE_VEL_RAD)) {
+        if (millis() - spin_error_timer > SPIN_TIMEOUT_MS) {
+            sys_error = true;
+            error_state = ERR_OPPOSITE_SPIN;
+        }
+    } else {
+        spin_error_timer = millis(); // Timer reset (if everything is ok)
+    }
+}
+

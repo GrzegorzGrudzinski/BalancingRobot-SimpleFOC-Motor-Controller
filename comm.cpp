@@ -107,6 +107,9 @@ const char* getErrorText(error_states_t state)
         case ERR_INV_COMMAND:   return "INVALID_COMMAND";
         case ERR_IS_NAN:        return "TARGET_IS_NAN";
         case ERR_COM_TIMEOUT:   return "TIMEOUT";
+        case ERR_MOTOR_STALL:   return "MOTOR_STALLED";  
+        case ERR_DESYNC:        return "MOTORS_DESYNC"; 
+        case ERR_OPPOSITE_SPIN: return "OPPOSITE_SPIN"; 
         default:                return "UNKNOWN_ERROR";
     }
 }

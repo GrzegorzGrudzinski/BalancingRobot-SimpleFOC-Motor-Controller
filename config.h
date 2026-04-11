@@ -11,7 +11,10 @@ typedef enum {
     ERR_COMMUNICATION,
     ERR_INV_COMMAND,
     ERR_IS_NAN,
-    ERR_COM_TIMEOUT
+    ERR_COM_TIMEOUT,
+    ERR_MOTOR_STALL,   
+    ERR_DESYNC,        
+    ERR_OPPOSITE_SPIN    
 } error_states_t;
 
 extern error_states_t error_state;
@@ -67,6 +70,14 @@ extern bool sys_error;
 #define MOT_R   0.27
 
 // =====================================
-// GENERAL
+// SAFETY LIMITS
 // =====================================
-#define MOT_LIMIT   1
+#define MOT_LIMIT          1.0   // Motor target limit
+
+#define STALL_TORQUE_MIN   0.3   // Min target (A / V) leading to movement
+#define STALL_VEL_MAX      1.0   // Max vel. considered as no movement
+#define STALL_TIMEOUT_MS   300   // Timeout (in ms) of stall before throwing error
+
+#define MAX_DESYNC_VEL_RAD 20.0  // Max vel difference between wheels
+#define MAX_OPPOSITE_VEL_RAD 15.0  // 
+#define SPIN_TIMEOUT_MS      200   // 

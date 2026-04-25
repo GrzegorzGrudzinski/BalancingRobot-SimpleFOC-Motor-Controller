@@ -28,14 +28,6 @@ void LookForErrors();
 void setup() { 
   set_pins_low_setup();
 
-  Serial.begin(115200);
-  SimpleFOCDebug::enable(&Serial);
- 
-  command.add('T', doTarget, "Target current");
-  command.add('D', doToggleDebug, "Toggle Debug Telemetry");
-  command.add('S', doToggleTest, "Toggle Motor Test Mode"); //
-  command.add('I', doInitMotors, "Init/Start FOC"); 
-
   comm_init();
   // motors_setup();
 
@@ -51,10 +43,16 @@ void loop() {
   // main FOC algorithm function
   if (foc_initialized) {
     motors_loop_task();
-    bool sync_enabled_flag = (state == WORK && error_state == ERR_OK);
-    motors_sync_move(mot1_target, mot2_target, sync_enabled_flag);
+
+    if (state == MOTOR_TEST) {
+      motors_sync_move(mot1_target, mot2_target, false);
+    } else {
+      bool sync_enabled_flag = (state == WORK && error_state == ERR_OK);
+      motors_sync_move(mot1_target, mot2_target, sync_enabled_flag);
+    }
   }
 
+  // 
   switch (state) {
   case STANDBY:
     if ( user_start_trigger) {
@@ -131,6 +129,7 @@ void loop() {
   case MOTOR_TEST:
 
     break;
+    
   case WORK: // normal operation
     work();
     break;
@@ -145,6 +144,7 @@ void loop() {
     break;
   }
 
+  // Feedback 
   if (state != STANDBY) {
     if (rx_msg_received || (state == CONNECT && connection_timer_flag)) {
     uint8_t status_to_send;
@@ -177,107 +177,4 @@ void LookForErrors() {
   if (sys_error || (error_state != ERR_OK) || comm_timeout) {
     state = ERROR;
   }
-}
-
-void work () {
-    if (rx_msg_received) {
-        last_valid_msg_time = millis();
-        comm_timeout = false;
-
-        switch(rx_data.command) {
-            case CMD_HELLO_MASTER :
-                //
-                break;
-            case CMD_SET_VAL:
-                mot1_target = - rx_data.value1;
-                mot2_target = - rx_data.value2;
-
-                if (error_state != ERR_INIT) {
-                    sys_error = false;
-                    error_state = ERR_OK;
-                }
-                break;
-            case CMD_STOP: // STOP (Upadek)
-                mot1_target = 0.0;
-                mot2_target = 0.0;
-                break;
-            default:
-                mot1_target = 0.0;
-                mot2_target = 0.0;
-                sys_error = true;
-                error_state = ERR_INV_COMMAND;
-                // comm_timeout = true;
-                break;
-        }
-    }
-
-    if (millis() - last_valid_msg_time > COMM_TIMEOUT_MS) {
-        if (error_state != ERR_INIT) {
-            mot1_target = 0.0;
-            mot2_target = 0.0;
-            sys_error = true;
-            error_state = ERR_COM_TIMEOUT;
-            if (!comm_timeout) {
-                comm_timeout = true;
-            }
-        }
-    }
-
-    // Motion control function
-    if (isnan(mot1_target) || isnan(mot2_target)) {
-        mot1_target = 0.0;
-        mot2_target = 0.0;
-        sys_error = true;
-        error_state = ERR_IS_NAN;
-    }
-}
-
-void telemetry() {
-    if (debug_enabled) {
-        if (millis() - last_telemetry_time > 50) { // 20 Hz
-            last_telemetry_time = millis();
-            if (!sys_error) {
-                Serial.print("Mot 1 target: ");
-                Serial.print(mot1_target);
-                Serial.print("\tMot1 voltage q: ");
-                Serial.print(motor1.voltage.q);
-                Serial.print("\tMot1 voltage d: ");
-                Serial.print(motor1.voltage.d);
-                Serial.print("\tMot1 velocity: ");
-                Serial.print(motor1.shaft_velocity);
-                Serial.print("\tMot1 angle: ");
-                Serial.print(motor1.shaft_angle);
-
-                Serial.print("\t\tMot 2 target: ");
-                Serial.print(mot2_target);
-                Serial.print("\tMot2 voltage q: ");
-                Serial.print(motor2.voltage.q);
-                Serial.print("\tMot2 voltage d: ");
-                Serial.print(motor2.voltage.d);
-                Serial.print("\tMot2 velocity: ");
-                Serial.print(motor2.shaft_velocity);
-                Serial.print("\tMot2 angle: ");
-                Serial.println(motor2.shaft_angle);
-            }
-            else {
-                Serial.print("ERROR\t");
-                Serial.print(getErrorText(error_state));
-                Serial.print("\tRX Command: ");
-                Serial.print(rx_data.command, HEX);
-                Serial.print(" ");
-                Serial.print(rx_data.value1);
-                Serial.print(" ");
-                Serial.print(rx_data.value2);
-                Serial.print("\tTarget 1 ");
-                Serial.print(mot1_target);
-                Serial.print("\tMot1 velocity: ");
-                Serial.print(motor1.shaft_velocity);
-                Serial.print("\tTarget 2 ");
-                Serial.print(mot2_target);
-                Serial.print("\tMot2 velocity: ");
-                Serial.print(motor2.shaft_velocity);
-                Serial.println("");
-            }
-        }
-    }
 }

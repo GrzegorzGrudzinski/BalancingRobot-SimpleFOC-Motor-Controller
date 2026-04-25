@@ -76,3 +76,4 @@ void process_commands();
 const char* getErrorText(error_states_t state);
 void send_feedback(uint8_t status_cmd, float mot1_v, float mot2_v);
 void connection_timer();
+void telemetry();

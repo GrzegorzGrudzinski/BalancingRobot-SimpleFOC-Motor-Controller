@@ -12,7 +12,7 @@ BLDCMotor motor2 = BLDCMotor(M2_PP);
 BLDCDriver3PWM driver2 = BLDCDriver3PWM(M2_A, M2_B, M2_C, M2_EN);
 Encoder encoder2 = Encoder(ENC2_A, ENC2_B, ENC2_PPR);
 
-// IRAM_ATTR ????
+// 
 void IRAM_ATTR doA1(){ encoder1.handleA(); }
 void IRAM_ATTR doB1(){ encoder1.handleB(); }
 
@@ -149,8 +149,6 @@ void motors_stop(){
 }
 
 
-
-
 float motors_synchronize(float target1, float target2) {
     static float target_angle_diff = 0.0;
     static bool is_turning = true;
@@ -249,3 +247,56 @@ void check_motors_health(float target1, float target2, bool is_working_flag) {
     }
 }
 
+
+void work() {
+    if (rx_msg_received) {
+        last_valid_msg_time = millis();
+        comm_timeout = false;
+
+        switch(rx_data.command) {
+            case CMD_HELLO_MASTER :
+                //
+                break;
+            case CMD_SET_VAL:
+                mot1_target = - rx_data.value1;
+                mot2_target = - rx_data.value2;
+
+                if (error_state != ERR_INIT) {
+                    sys_error = false;
+                    error_state = ERR_OK;
+                }
+                break;
+            case CMD_STOP: // STOP (Upadek)
+                mot1_target = 0.0;
+                mot2_target = 0.0;
+                break;
+            default:
+                mot1_target = 0.0;
+                mot2_target = 0.0;
+                sys_error = true;
+                error_state = ERR_INV_COMMAND;
+                // comm_timeout = true;
+                break;
+        }
+    }
+
+    if (millis() - last_valid_msg_time > COMM_TIMEOUT_MS) {
+        if (error_state != ERR_INIT) {
+            mot1_target = 0.0;
+            mot2_target = 0.0;
+            sys_error = true;
+            error_state = ERR_COM_TIMEOUT;
+            if (!comm_timeout) {
+                comm_timeout = true;
+            }
+        }
+    }
+
+    // Motion control function
+    if (isnan(mot1_target) || isnan(mot2_target)) {
+        mot1_target = 0.0;
+        mot2_target = 0.0;
+        sys_error = true;
+        error_state = ERR_IS_NAN;
+    }
+}

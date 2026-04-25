@@ -62,6 +62,15 @@ void doToggleTest(char* cmd) {
 //////////////////////////////
 
 void comm_init() {
+  Serial.begin(115200);
+  SimpleFOCDebug::enable(&Serial);
+ 
+  command.add('T', doTarget, "Target current");
+  command.add('D', doToggleDebug, "Toggle Debug Telemetry");
+  command.add('S', doToggleTest, "Toggle Motor Test Mode"); //
+  command.add('I', doInitMotors, "Init/Start FOC"); 
+
+  // communication with master
   SerialCTRL.begin(115200, SERIAL_8N1, RX_PIN, TX_PIN);
 }
 
@@ -163,4 +172,57 @@ void send_feedback(uint8_t status_cmd, float mot1_v, float mot2_v) {
     tx_data.checksum = calculate_checksum((uint8_t*)&tx_data, sizeof(FeedbackPacket_t));
 
     SerialCTRL.write((uint8_t*)&tx_data, sizeof(FeedbackPacket_t));
+}
+
+
+
+
+void telemetry() {
+    if (debug_enabled) {
+        if (millis() - last_telemetry_time > 50) { // 20 Hz
+            last_telemetry_time = millis();
+            if (!sys_error) {
+                Serial.print("Mot 1 target: ");
+                Serial.print(mot1_target);
+                Serial.print("\tMot1 voltage q: ");
+                Serial.print(motor1.voltage.q);
+                Serial.print("\tMot1 voltage d: ");
+                Serial.print(motor1.voltage.d);
+                Serial.print("\tMot1 velocity: ");
+                Serial.print(motor1.shaft_velocity);
+                Serial.print("\tMot1 angle: ");
+                Serial.print(motor1.shaft_angle);
+
+                Serial.print("\t\tMot 2 target: ");
+                Serial.print(mot2_target);
+                Serial.print("\tMot2 voltage q: ");
+                Serial.print(motor2.voltage.q);
+                Serial.print("\tMot2 voltage d: ");
+                Serial.print(motor2.voltage.d);
+                Serial.print("\tMot2 velocity: ");
+                Serial.print(motor2.shaft_velocity);
+                Serial.print("\tMot2 angle: ");
+                Serial.println(motor2.shaft_angle);
+            }
+            else {
+                Serial.print("ERROR\t");
+                Serial.print(getErrorText(error_state));
+                Serial.print("\tRX Command: ");
+                Serial.print(rx_data.command, HEX);
+                Serial.print(" ");
+                Serial.print(rx_data.value1);
+                Serial.print(" ");
+                Serial.print(rx_data.value2);
+                Serial.print("\tTarget 1 ");
+                Serial.print(mot1_target);
+                Serial.print("\tMot1 velocity: ");
+                Serial.print(motor1.shaft_velocity);
+                Serial.print("\tTarget 2 ");
+                Serial.print(mot2_target);
+                Serial.print("\tMot2 velocity: ");
+                Serial.print(motor2.shaft_velocity);
+                Serial.println("");
+            }
+        }
+    }
 }

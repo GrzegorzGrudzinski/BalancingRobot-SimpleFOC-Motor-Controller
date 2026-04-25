@@ -24,3 +24,4 @@ void motors_stop();
 float motors_synchronize();
 void motors_sync_move(float target1, float target2, bool enable_sync);
 void check_motors_health(float target1, float target2, bool is_working_flag);
+void work();

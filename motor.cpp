@@ -109,6 +109,9 @@ void motors_setup() {
   // motor2.torque_controller = MOT_TORQUE_CTRL_TYPE;
   // motor2.controller = MotionControlType::torque;
 
+  motor1.LPF_velocity.Tf = MOT_VEL_FILTER; 
+  motor2.LPF_velocity.Tf = MOT_VEL_FILTER;
+
   if(!motor1.init() || !motor1.initFOC()){
     Serial.println("Motor/FOC init failed!");
     sys_error = true;
@@ -143,7 +146,7 @@ void motors_stop(){
 }
 
 
-#define K_SYNC 0.3 // Zmien w zaleznosci od potrzeb
+
 
 float motors_synchronize(float target1, float target2) {
     static float target_angle_diff = 0.0;
@@ -159,7 +162,7 @@ float motors_synchronize(float target1, float target2) {
         float current_diff = motor1.shaft_angle - motor2.shaft_angle;
         float angle_error = current_diff - target_angle_diff;
 
-        correction = angle_error * K_SYNC;
+        correction = angle_error * MOT_K_SYNC_WHEELS;
         correction = constrain(correction, -0.5, 0.5);
 
     } else {
@@ -189,10 +192,12 @@ void motors_sync_move(float target1, float target2, bool enable_sync) {
 void check_motors_health(float target1, float target2, bool is_working_flag) {
     static uint32_t stall_timer = millis();
     static uint32_t spin_error_timer = millis();
+    static uint32_t desync_timer = millis(); // 
 
     if ( !is_working_flag ) {
         stall_timer = millis();
         spin_error_timer = millis();
+        desync_timer = millis(); // 
         return; 
     }
 
@@ -219,8 +224,13 @@ void check_motors_health(float target1, float target2, bool is_working_flag) {
     // --------------------------------------------------------
     float vel_difference = abs(v1 - v2);
     if (vel_difference > MAX_DESYNC_VEL_RAD) {
-        sys_error = true;
-        error_state = ERR_DESYNC;
+        
+        if (millis() - desync_timer > DESYNC_TIMEOUT) { 
+            sys_error = true;
+            error_state = ERR_DESYNC;
+        }
+    } else {
+        desync_timer = millis();
     }
 
     // --------------------------------------------------------

@@ -8,12 +8,11 @@
 #include "comm.h"
 #include "motor.h"
 
-
-
 typedef enum {
   STANDBY,
   CONNECT,
   INIT,
+  MOTOR_TEST,
   WORK,
   ERROR
 } robot_states_t; 
@@ -25,25 +24,6 @@ void LookForErrors();
 float mot1_target = 0.0;
 float mot2_target = 0.0; // Na przyszłość, gdy odkomentujesz drugi silnik
 
-// instantiate the commander
-Commander command = Commander(Serial);
-void doMotor(char* cmd) { command.motor(&motor1, cmd); }
-
-// Init command
-bool user_start_trigger = false;  // Init start flag (from serial)
-bool foc_initialized = false;     // FOC initialized flag 
-void doInitMotors(char* cmd) { 
-  user_start_trigger = true; 
-}
-
-// Debug command
-bool debug_enabled = true;
-void doToggleDebug(char* cmd) {
-  debug_enabled = !debug_enabled;
-  Serial.println(debug_enabled ? "Debug ON" : "Debug OFF");
-}
-uint32_t last_telemetry_time = 0;
-
 // =====================================
 // 
 // =====================================
@@ -54,9 +34,10 @@ void setup() {
   Serial.begin(115200);
   SimpleFOCDebug::enable(&Serial);
  
-  command.add('M', doMotor, "Motor");
+  command.add('T', doMotors, "Target current");
   command.add('D', doToggleDebug, "Toggle Debug Telemetry");
-  command.add('S', doInitMotors, "Init/Start FOC"); 
+  command.add('S', doToggleTest, "Toggle Motor Test Mode"); //
+  command.add('I', doInitMotors, "Init/Start FOC"); 
 
   comm_init();
   // motors_setup();
@@ -135,7 +116,13 @@ void loop() {
     mot1_target = 0.0;
     mot2_target = 0.0;
     if (rx_data.command == CMD_INIT) {
-      state = WORK;
+      if (motor_test_enabled_flag) {
+        state = MOTOR_TEST;
+      }
+      else {
+        state = WORK;
+      }
+
       last_valid_msg_time = millis(); // reset timer while master is getting ready
 
       motor1.enable();
@@ -144,7 +131,9 @@ void loop() {
       Serial.println("Ready - starting to balance");
     }
     break;
-
+  case MOTOR_TEST:
+  
+    break;
   case WORK: // normal operation
     work();
     break;
@@ -203,8 +192,8 @@ void work () {
                 //
                 break;
             case CMD_SET_VAL:
-                mot1_target = rx_data.value1;
-                mot2_target = rx_data.value2;
+                mot1_target = - rx_data.value1;
+                mot2_target = - rx_data.value2;
 
                 if (error_state != ERR_INIT) {
                     sys_error = false;

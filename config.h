@@ -69,6 +69,8 @@ extern bool sys_error;
 #define MOT_KV  360.0
 #define MOT_R   0.27
 
+#define MOT_VEL_FILTER  0.05f
+
 // =====================================
 // SAFETY LIMITS
 // =====================================
@@ -78,6 +80,11 @@ extern bool sys_error;
 #define STALL_VEL_MAX      1.0   // Max vel. considered as no movement
 #define STALL_TIMEOUT_MS   300   // Timeout (in ms) of stall before throwing error
 
-#define MAX_DESYNC_VEL_RAD 20.0  // Max vel difference between wheels
-#define MAX_OPPOSITE_VEL_RAD 15.0  // 
-#define SPIN_TIMEOUT_MS      200   // 
+#define MAX_DESYNC_VEL_RAD      35.0  // Max vel difference between wheels
+#define MAX_OPPOSITE_VEL_RAD    15.0  // 
+#define SPIN_TIMEOUT_MS         200   // 
+
+#define MOT_K_SYNC_WHEELS 0.2
+#define DESYNC_TIMEOUT  100 // timer to ignore noise
+
+

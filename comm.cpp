@@ -3,8 +3,10 @@
     comm.cpp
 */
 
-#include "comm.h"
 #include <Arduino.h>
+#include <SimpleFOC.h> // for commander interface
+#include "comm.h"
+#include "motor.h" // for motor object
 
 HardwareSerial SerialCTRL(UART_NR); 
 
@@ -22,6 +24,42 @@ volatile bool connection_timer_flag = false;
 
 error_states_t error_state = ERR_OK;
 bool sys_error = false;
+
+
+// instantiate the commander
+Commander command = Commander(Serial);
+void doMotors(char* cmd) { 
+    command.motor(&motor1, cmd); 
+    command.motor(&motor2, cmd); 
+}
+
+// Init command
+bool user_start_trigger = false;  // Init start flag (from serial)
+bool foc_initialized = false;     // FOC initialized flag
+
+void doInitMotors(char* cmd) { 
+  user_start_trigger = true; 
+}
+
+// Debug command
+bool debug_enabled = true;
+
+void doToggleDebug(char* cmd) {
+  debug_enabled = !debug_enabled;
+  Serial.println(debug_enabled ? "Debug ON" : "Debug OFF");
+}
+uint32_t last_telemetry_time = 0;
+
+// Motor test mode command
+bool motor_test_enabled_flag = true;
+
+void doToggleTest(char* cmd) {
+  motor_test_enabled_flag = !motor_test_enabled_flag;
+  Serial.println(motor_test_enabled_flag ? "Test Mode ON" : "Test Mode OFF");
+}
+
+
+//////////////////////////////
 
 void comm_init() {
   SerialCTRL.begin(115200, SERIAL_8N1, RX_PIN, TX_PIN);

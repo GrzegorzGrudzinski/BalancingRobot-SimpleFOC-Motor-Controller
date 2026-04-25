@@ -21,9 +21,6 @@ robot_states_t state = STANDBY;
 
 void LookForErrors();
 
-float mot1_target = 0.0;
-float mot2_target = 0.0; // Na przyszłość, gdy odkomentujesz drugi silnik
-
 // =====================================
 // 
 // =====================================
@@ -34,7 +31,7 @@ void setup() {
   Serial.begin(115200);
   SimpleFOCDebug::enable(&Serial);
  
-  command.add('T', doMotors, "Target current");
+  command.add('T', doTarget, "Target current");
   command.add('D', doToggleDebug, "Toggle Debug Telemetry");
   command.add('S', doToggleTest, "Toggle Motor Test Mode"); //
   command.add('I', doInitMotors, "Init/Start FOC"); 
@@ -132,7 +129,7 @@ void loop() {
     }
     break;
   case MOTOR_TEST:
-  
+
     break;
   case WORK: // normal operation
     work();

@@ -19,6 +19,9 @@ void IRAM_ATTR doB1(){ encoder1.handleB(); }
 void IRAM_ATTR doA2(){ encoder2.handleA(); }
 void IRAM_ATTR doB2(){ encoder2.handleB(); }
 
+float mot1_target = 0.0;
+float mot2_target = 0.0;
+
 void set_pins_low_setup() {
   pinMode(22, OUTPUT);     // Pin EN dla Drivera 2
   digitalWrite(22, LOW);   // Twarde wyłączenie Drivera 2 (przed startem)

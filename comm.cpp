@@ -28,9 +28,9 @@ bool sys_error = false;
 
 // instantiate the commander
 Commander command = Commander(Serial);
-void doMotors(char* cmd) { 
-    command.motor(&motor1, cmd); 
-    command.motor(&motor2, cmd); 
+void doTarget(char* cmd) { 
+    command.scalar(&mot1_target, cmd);
+    command.scalar(&mot2_target, cmd);
 }
 
 // Init command
@@ -51,7 +51,7 @@ void doToggleDebug(char* cmd) {
 uint32_t last_telemetry_time = 0;
 
 // Motor test mode command
-bool motor_test_enabled_flag = true;
+bool motor_test_enabled_flag = false;
 
 void doToggleTest(char* cmd) {
   motor_test_enabled_flag = !motor_test_enabled_flag;

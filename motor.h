@@ -13,6 +13,9 @@
 extern BLDCMotor motor1;
 extern BLDCMotor motor2;
 
+extern float mot1_target;
+extern float mot2_target; 
+
 void set_pins_low_setup();
 void motors_setup();
 void motors_loop_task();

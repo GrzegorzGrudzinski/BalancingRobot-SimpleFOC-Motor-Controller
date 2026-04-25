@@ -64,7 +64,7 @@ extern bool debug_enabled;
 extern bool motor_test_enabled_flag;
 extern uint32_t last_telemetry_time;
 
-void doMotors(char* cmd);
+void doTarget(char* cmd);
 void doInitMotors(char* cmd);
 void doToggleDebug(char* cmd);
 void doToggleTest(char* cmd);

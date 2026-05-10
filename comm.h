@@ -68,6 +68,7 @@ void doTarget(char* cmd);
 void doInitMotors(char* cmd);
 void doToggleDebug(char* cmd);
 void doToggleTest(char* cmd);
+void doStop(char* cmd);
 
 //////////////////////
 void comm_init();

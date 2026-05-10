@@ -1,8 +1,8 @@
-#include "esp32-hal.h"
 /*
     comm.cpp
 */
 
+#include "esp32-hal.h"
 #include <Arduino.h>
 #include <SimpleFOC.h> // for commander interface
 #include "comm.h"
@@ -28,9 +28,15 @@ bool sys_error = false;
 
 // instantiate the commander
 Commander command = Commander(Serial);
+
+//
 void doTarget(char* cmd) { 
-    command.scalar(&mot1_target, cmd);
-    command.scalar(&mot2_target, cmd);
+    if (motor_test_enabled_flag) {
+        command.scalar(&mot1_target, cmd);
+        command.scalar(&mot2_target, cmd);
+    } else {
+        Serial.println("Motor Test Mode disabled. To enable it enter S command");
+    }
 }
 
 // Init command
@@ -57,6 +63,10 @@ void doToggleTest(char* cmd) {
   motor_test_enabled_flag = !motor_test_enabled_flag;
   Serial.println(motor_test_enabled_flag ? "Test Mode ON" : "Test Mode OFF");
 }
+void doStop(char* cmd) {
+    state = STOP;
+    Serial.println(motor_test_enabled_flag ? "Test Mode ON" : "Test Mode OFF");
+}
 
 
 //////////////////////////////
@@ -69,6 +79,7 @@ void comm_init() {
   command.add('D', doToggleDebug, "Toggle Debug Telemetry");
   command.add('S', doToggleTest, "Toggle Motor Test Mode"); //
   command.add('I', doInitMotors, "Init/Start FOC"); 
+  command.add('X', doStop, "Stop motors"); 
 
   // communication with master
   SerialCTRL.begin(115200, SERIAL_8N1, RX_PIN, TX_PIN);
@@ -105,7 +116,6 @@ void process_commands()
         // if (incoming_byte == 0xAA && rx_state == 1 && rx_index > 0 && rx_index < sizeof(MotorPacket_t)) {
         //     rx_index = 0;
         // }
-
         if (rx_state == 0) {
             if (incoming_byte == 0xAA) { // Start byte found
                 rx_buffer[0] = incoming_byte;
@@ -175,13 +185,31 @@ void send_feedback(uint8_t status_cmd, float mot1_v, float mot2_v) {
 }
 
 
-
-
 void telemetry() {
-    if (debug_enabled) {
+    if (motor_test_enabled_flag) {
+        static uint32_t last_sim_telemetry_time = 0;
+        // 100 Hz (every 10 ms)
+        if (millis() - last_sim_telemetry_time >= 10) { 
+            last_sim_telemetry_time = millis();
+            
+
+            // Format: $time,target_m1,currnet_q_m1,velocity_m1,angle_m1,target_m2,currnet_q_m2,velocity_m2,angle_m2
+            Serial.print("$");
+            Serial.print(millis()); Serial.print(",");
+            Serial.print(mot1_target); Serial.print(",");
+            Serial.print(motor1.current.q); Serial.print(",");
+            Serial.print(motor1.shaft_velocity); Serial.print(",");
+            Serial.print(motor1.shaft_angle); Serial.print(","); 
+            Serial.print(mot2_target); Serial.print(",");
+            Serial.print(motor2.current.q); Serial.print(",");
+            Serial.print(motor2.shaft_velocity); Serial.print(",");
+            Serial.println(motor2.shaft_angle);                  
+        }
+    }
+    else if (debug_enabled) {
         if (millis() - last_telemetry_time > 50) { // 20 Hz
             last_telemetry_time = millis();
-            if (!sys_error) {
+            if (!sys_error && !motor_test_enabled_flag ) {
                 Serial.print("Mot 1 target: ");
                 Serial.print(mot1_target);
                 Serial.print("\tMot1 voltage q: ");
@@ -192,7 +220,7 @@ void telemetry() {
                 Serial.print(motor1.shaft_velocity);
                 Serial.print("\tMot1 angle: ");
                 Serial.print(motor1.shaft_angle);
-
+                
                 Serial.print("\t\tMot 2 target: ");
                 Serial.print(mot2_target);
                 Serial.print("\tMot2 voltage q: ");

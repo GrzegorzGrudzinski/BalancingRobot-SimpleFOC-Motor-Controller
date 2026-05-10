@@ -20,6 +20,17 @@ typedef enum {
 extern error_states_t error_state;
 extern bool sys_error;
 
+typedef enum {
+  STANDBY,
+  CONNECT,
+  INIT,
+  MOTOR_TEST,
+  WORK,
+  STOP,
+  ERROR
+} robot_states_t; 
+
+extern robot_states_t state;
 // =====================================
 // COMMUNICATION
 // =====================================
@@ -32,6 +43,7 @@ extern bool sys_error;
 // =====================================
 // ENCODERS
 // =====================================
+// ABI
 #define ENC1_A  18
 #define ENC1_B  19
 #define ENC1_PPR    1000
@@ -39,6 +51,13 @@ extern bool sys_error;
 #define ENC2_A  5
 #define ENC2_B  23
 #define ENC2_PPR    1000
+
+// SPI
+#define HSPI_MISO 19 // MISO (Master In Slave Out)
+#define HSPI_MOSI 23 // MOSI (Master Out Slave In)
+#define HSPI_SCLK 18 // Zegar (SCK)
+#define HSPI1_SS  5  // Chip Select (CS) dla silnika 1
+#define HSPI2_SS  15 // Chip Select (CS) dla silnika 2
 
 // =====================================
 // MOTORS & DRIVERS

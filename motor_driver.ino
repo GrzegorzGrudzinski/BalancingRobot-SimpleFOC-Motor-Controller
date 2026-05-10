@@ -8,14 +8,14 @@
 #include "comm.h"
 #include "motor.h"
 
-typedef enum {
-  STANDBY,
-  CONNECT,
-  INIT,
-  MOTOR_TEST,
-  WORK,
-  ERROR
-} robot_states_t; 
+/*
+  command.add('I', doInitMotors, "Init/Start FOC"); 
+  command.add('X', doStop, "Stop motors"); 
+  command.add('D', doToggleDebug, "Toggle Debug Telemetry");
+  command.add('S', doToggleTest, "Toggle Motor Test Mode"); //
+  command.add('T', doTarget, "Target current"); (After entering test mode)
+
+*/
 
 robot_states_t state = STANDBY;
 
@@ -39,7 +39,7 @@ void setup() {
 void loop() {
   process_commands();
   command.run();
-
+  
   // main FOC algorithm function
   if (foc_initialized) {
     motors_loop_task();
@@ -127,13 +127,34 @@ void loop() {
     }
     break;
   case MOTOR_TEST:
+    if (!motor_test_enabled_flag) {
+      mot1_target = 0.0;
+      mot2_target = 0.0;
+      state = WORK;
+      Serial.println("Motor Testing disabled. Back to WORK");
+    }
+    break;
 
+  case WORK: // normal operation
+    if (motor_test_enabled_flag) {
+      mot1_target = 0.0;
+      mot2_target = 0.0;
+      state = MOTOR_TEST;
+      Serial.println("MOTOR_TEST enabled. Use T command to set target (eg. T0.5)");
+    } else {
+      work();
+    }
+    break;
+
+  case STOP: // 
+    mot1_target = 0.0;
+    mot2_target = 0.0;
+    
+    motor1.disable();
+    motor2.disable();
+    
     break;
     
-  case WORK: // normal operation
-    work();
-    break;
-
   case ERROR: // error state
     mot1_target = 0.0;
     mot2_target = 0.0;
@@ -145,7 +166,7 @@ void loop() {
   }
 
   // Feedback 
-  if (state != STANDBY) {
+  if (state != (STANDBY) ) {
     if (rx_msg_received || (state == CONNECT && connection_timer_flag)) {
     uint8_t status_to_send;
     switch (state) {

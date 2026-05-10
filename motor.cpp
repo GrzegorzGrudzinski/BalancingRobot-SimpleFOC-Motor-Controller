@@ -6,18 +6,26 @@
 
 BLDCMotor motor1 = BLDCMotor(M1_PP);
 BLDCDriver3PWM driver1 = BLDCDriver3PWM(M1_A, M1_B, M1_C, M1_EN);
-Encoder encoder1 = Encoder(ENC1_A, ENC1_B, ENC1_PPR);
 
 BLDCMotor motor2 = BLDCMotor(M2_PP);
 BLDCDriver3PWM driver2 = BLDCDriver3PWM(M2_A, M2_B, M2_C, M2_EN);
-Encoder encoder2 = Encoder(ENC2_A, ENC2_B, ENC2_PPR);
 
-// 
-void IRAM_ATTR doA1(){ encoder1.handleA(); }
-void IRAM_ATTR doB1(){ encoder1.handleB(); }
 
-void IRAM_ATTR doA2(){ encoder2.handleA(); }
-void IRAM_ATTR doB2(){ encoder2.handleB(); }
+
+// Ustawienia dla AS5048 (AS5147_SPI ma identyczną ramkę danych SPI)
+MagneticSensorSPI sensor1 = MagneticSensorSPI(AS5147_SPI, HSPI1_SS);
+MagneticSensorSPI sensor2 = MagneticSensorSPI(AS5147_SPI, HSPI2_SS);
+SPIClass SPI_2(HSPI);
+
+// Encoder encoder1 = Encoder(ENC1_A, ENC1_B, ENC1_PPR);
+// Encoder encoder2 = Encoder(ENC2_A, ENC2_B, ENC2_PPR);
+
+// // 
+// void IRAM_ATTR doA1(){ encoder1.handleA(); }
+// void IRAM_ATTR doB1(){ encoder1.handleB(); }
+
+// void IRAM_ATTR doA2(){ encoder2.handleA(); }
+// void IRAM_ATTR doB2(){ encoder2.handleB(); }
 
 float mot1_target = 0.0;
 float mot2_target = 0.0;
@@ -45,15 +53,17 @@ void set_pins_low_setup() {
 void motors_setup() {
 
   // initialize encoder sensor hardware
-  // encoder1.quadrature = Quadrature::ON;
-  encoder1.init();
-  encoder1.enableInterrupts(doA1, doB1); 
-  motor1.linkSensor(&encoder1);
+  SPI_2.begin(HSPI_SCLK, HSPI_MISO, HSPI_MOSI, -1);
+  sensor1.init(&SPI_2);
+  sensor2.init(&SPI_2);
+
+  // sensor1.quadrature = Quadrature::ON;
+  // sensor1.enableInterrupts(doA1, doB1);  
+  // sensor2.quadrature = Quadrature::ON;
+  // sensor2.enableInterrupts(doA2, doB2); 
   
-  // encoder2.quadrature = Quadrature::ON;
-  encoder2.init();
-  encoder2.enableInterrupts(doA2, doB2); 
-  motor2.linkSensor(&encoder2);
+  motor1.linkSensor(&sensor1);
+  motor2.linkSensor(&sensor2);
 
   // driver init
   driver1.voltage_power_supply = 12;

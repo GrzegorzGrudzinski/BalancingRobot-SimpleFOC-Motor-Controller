@@ -27,12 +27,14 @@ typedef struct __attribute__((packed)) {
 typedef enum {
     CMD_HELLO_MOTOR  = 0xFA, // HELLO FROM MOTOR
     CMD_HELLO_MASTER = 0xAF, // HELLO FROM MASTER
-    CMD_INIT    = 0xDD,
-    CMD_START   = 0x10,
-    CMD_SET_VAL = 0x11, // Ustawienie prędkości
-    CMD_STOP    = 0x55, // 0x20,
-    // CMD_SET_TRQ = 0x40, 
-    CMD_CLR_FLT = 0x50  // Kasowanie błędów
+    CMD_START_INIT   = 0xDD, // 
+    CMD_INIT         = 0x01,
+    CMD_START        = 0x10,
+    CMD_SET_VAL      = 0x11, // Ustawienie prędkości
+    CMD_STOP         = 0x20, // 0x20,
+    CMD_CLR_FLT      = 0x50, // Kasowanie błędów
+    CMD_RESET        = 0x51, // Reset     
+    CMD_ERROR        = 0x60  // Error
 } CommandType_t;
 
 // Feedback frame (1 + 1 + 4 + 4 + 1 = 11 bytes)

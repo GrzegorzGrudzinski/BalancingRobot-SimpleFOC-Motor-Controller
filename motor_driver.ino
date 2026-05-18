@@ -45,17 +45,25 @@ void loop() {
     motors_loop_task();
 
     if (state == MOTOR_TEST) {
-      motors_sync_move(mot1_target, mot2_target, false);
+      motors_sync_move(-mot1_target, -mot2_target, false);
     } else {
-      bool sync_enabled_flag = (state == WORK && error_state == ERR_OK);
-      motors_sync_move(mot1_target, mot2_target, sync_enabled_flag);
+      bool sync_enabled_flag = (state == RUN && error_state == ERR_OK);
+      motors_sync_move(-mot1_target, -mot2_target, sync_enabled_flag);
     }
   }
 
   // 
   switch (state) {
   case STANDBY:
-    if ( user_start_trigger) {
+    motors_disable();
+
+    if (rx_data.command == CMD_START_INIT) {
+      user_start_trigger = true;
+      
+      send_feedback( CMD_START_INIT, 0.0, 0.0); 
+    }
+
+    if ( user_start_trigger ) {
       Serial.println("Starting FOC calibration... ");
 
       motors_setup();
@@ -64,13 +72,9 @@ void loop() {
         state = ERROR;
       } 
       else {
-        motor1.target = 0.0;
-        motor2.target = 0.0;
+        motors_disable();
 
         Serial.println("Stabilizing filters...");
-
-        motor1.disable(); 
-        motor2.disable();
         for(int i = 0; i < 100; i++) {
             motor1.sensor->update();
             motor1.shaft_velocity = motor1.LPF_velocity(motor1.sensor->getVelocity());
@@ -115,7 +119,7 @@ void loop() {
         state = MOTOR_TEST;
       }
       else {
-        state = WORK;
+        state = RUN;
       }
 
       last_valid_msg_time = millis(); // reset timer while master is getting ready
@@ -130,12 +134,12 @@ void loop() {
     if (!motor_test_enabled_flag) {
       mot1_target = 0.0;
       mot2_target = 0.0;
-      state = WORK;
-      Serial.println("Motor Testing disabled. Back to WORK");
+      state = RUN;
+      Serial.println("Motor Testing disabled. Back to RUN");
     }
     break;
 
-  case WORK: // normal operation
+  case RUN: // normal operation
     if (motor_test_enabled_flag) {
       mot1_target = 0.0;
       mot2_target = 0.0;
@@ -143,25 +147,35 @@ void loop() {
       Serial.println("MOTOR_TEST enabled. Use T command to set target (eg. T0.5)");
     } else {
       work();
+
+      if (error_state != ERR_OK) {
+        state = ERROR;
+      }
+      else if (rx_data.command == STOP) {
+        state = STOP;
+      }
     }
     break;
 
   case STOP: // 
-    mot1_target = 0.0;
-    mot2_target = 0.0;
+    motors_disable();
     
-    motor1.disable();
-    motor2.disable();
-    
+    state = STANDBY;
+
     break;
     
   case ERROR: // error state
-    mot1_target = 0.0;
-    mot2_target = 0.0;
+    motors_disable();
     
-    motor1.disable();
-    motor2.disable();
-    
+    if (rx_data.command == CMD_CLR_FLT) {
+      sys_error = false;
+      error_state = ERR_OK;
+
+      send_feedback(CMD_CLR_FLT, 0.0, 0.0);
+      
+      state = STANDBY;
+    }
+
     break;
   }
 
@@ -172,7 +186,9 @@ void loop() {
     switch (state) {
       case CONNECT: status_to_send = CMD_HELLO_MOTOR; break;
       case INIT:    status_to_send = CMD_START;       break;
-      case WORK:    status_to_send = CMD_SET_VAL;     break; 
+      case RUN:     status_to_send = CMD_SET_VAL;     break; 
+      case STOP:    status_to_send = CMD_STOP;        break;
+      case ERROR:   status_to_send = CMD_ERROR;       break;
       default:      status_to_send = CMD_STOP;        break;
     }
 
@@ -191,7 +207,7 @@ void loop() {
 
 void LookForErrors() {
   if ( !sys_error ) {
-      bool is_working_flag = (state == WORK);
+      bool is_working_flag = (state == RUN);
       check_motors_health(mot1_target, mot2_target, is_working_flag);
   }
 

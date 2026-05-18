@@ -25,7 +25,7 @@ typedef enum {
   CONNECT,
   INIT,
   MOTOR_TEST,
-  WORK,
+  RUN,
   STOP,
   ERROR
 } robot_states_t; 
@@ -75,7 +75,7 @@ extern robot_states_t state;
 #define M2_EN   12
 
 #define DRIVER_V_LIMIT 6
-#define MOT_A_LIMIT 1.5
+#define MOT_A_LIMIT 2
 #define MOT_V_LIMIT 1.0
 #define MOT_V_ALIGN_LIMIT 0.9
 // #define MOT_TORQUE_CTRL_TYPE TorqueControlType::estimated_current
@@ -95,9 +95,9 @@ extern robot_states_t state;
 // =====================================
 #define MOT_LIMIT          1.0   // Motor target limit
 
-#define STALL_TORQUE_MIN   0.3   // Min target (A / V) leading to movement
+#define STALL_TORQUE_MIN   0.85    // 0.3  // ---- 0.3 Min target (A / V) leading to movement 
 #define STALL_VEL_MAX      1.0   // Max vel. considered as no movement
-#define STALL_TIMEOUT_MS   300   // Timeout (in ms) of stall before throwing error
+#define STALL_TIMEOUT_MS   500   // Timeout (in ms) of stall before throwing error
 
 #define MAX_DESYNC_VEL_RAD      35.0  // Max vel difference between wheels
 #define MAX_OPPOSITE_VEL_RAD    15.0  // 

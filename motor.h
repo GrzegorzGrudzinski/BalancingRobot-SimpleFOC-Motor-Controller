@@ -22,6 +22,7 @@ extern float mot2_target;
 
 void set_pins_low_setup();
 void motors_setup();
+void motors_disable();
 void motors_loop_task();
 void motors_move(float target1, float target2);
 void motors_stop();

@@ -17,16 +17,6 @@ MagneticSensorSPI sensor1 = MagneticSensorSPI(AS5147_SPI, HSPI1_SS);
 MagneticSensorSPI sensor2 = MagneticSensorSPI(AS5147_SPI, HSPI2_SS);
 SPIClass SPI_2(HSPI);
 
-// Encoder encoder1 = Encoder(ENC1_A, ENC1_B, ENC1_PPR);
-// Encoder encoder2 = Encoder(ENC2_A, ENC2_B, ENC2_PPR);
-
-// // 
-// void IRAM_ATTR doA1(){ encoder1.handleA(); }
-// void IRAM_ATTR doB1(){ encoder1.handleB(); }
-
-// void IRAM_ATTR doA2(){ encoder2.handleA(); }
-// void IRAM_ATTR doB2(){ encoder2.handleB(); }
-
 float mot1_target = 0.0;
 float mot2_target = 0.0;
 
@@ -56,11 +46,6 @@ void motors_setup() {
   SPI_2.begin(HSPI_SCLK, HSPI_MISO, HSPI_MOSI, -1);
   sensor1.init(&SPI_2);
   sensor2.init(&SPI_2);
-
-  // sensor1.quadrature = Quadrature::ON;
-  // sensor1.enableInterrupts(doA1, doB1);  
-  // sensor2.quadrature = Quadrature::ON;
-  // sensor2.enableInterrupts(doA2, doB2); 
   
   motor1.linkSensor(&sensor1);
   motor2.linkSensor(&sensor2);
@@ -138,6 +123,17 @@ void motors_setup() {
     error_state = ERR_INIT;
     return;
   }
+}
+
+void motors_disable() {
+    mot1_target = 0.0;
+    mot2_target = 0.0;
+    
+    motor1.target = 0.0;
+    motor2.target = 0.0;
+    
+    if (motor1.driver != nullptr) motor1.disable();
+    if (motor2.driver != nullptr) motor2.disable();
 }
 
 void motors_loop_task() {
@@ -218,10 +214,10 @@ void check_motors_health(float target1, float target2, bool is_working_flag) {
     // --------------------------------------------------------
     // 1. Stall Detection
     // --------------------------------------------------------
-    bool is_pushing_hard = (abs(target1) > STALL_TORQUE_MIN) || (abs(target2) > STALL_TORQUE_MIN);  // are motors supposed to run?
-    bool is_not_moving = (abs(v1) < STALL_VEL_MAX) || (abs(v2) < STALL_VEL_MAX);                            // are motors stationary when supposed to move?
+    bool is_m1_stalled = (abs(target1) > STALL_TORQUE_MIN) && (abs(v1) < STALL_VEL_MAX);
+    bool is_m2_stalled = (abs(target2) > STALL_TORQUE_MIN) && (abs(v2) < STALL_VEL_MAX);
 
-    if (is_pushing_hard && is_not_moving) {
+    if (is_m1_stalled || is_m2_stalled) {
         if (millis() - stall_timer > STALL_TIMEOUT_MS) {
             sys_error = true;
             error_state = ERR_MOTOR_STALL;
@@ -277,8 +273,12 @@ void work() {
                 }
                 break;
             case CMD_STOP: // STOP (Upadek)
+                motor1.disable();
+                motor2.disable();
+                
                 mot1_target = 0.0;
                 mot2_target = 0.0;
+                
                 break;
             default:
                 mot1_target = 0.0;

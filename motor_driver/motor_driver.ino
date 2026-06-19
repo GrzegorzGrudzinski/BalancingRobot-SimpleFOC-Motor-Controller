@@ -45,10 +45,10 @@ void loop() {
     motors_loop_task();
 
     if (state == MOTOR_TEST) {
-      motors_sync_move(-mot1_target, -mot2_target, false);
+      motors_sync_move(mot1_target, mot2_target, false);
     } else {
       bool sync_enabled_flag = (state == RUN && error_state == ERR_OK);
-      motors_sync_move(-mot1_target, -mot2_target, sync_enabled_flag);
+      motors_sync_move(mot1_target, mot2_target, sync_enabled_flag);
     }
   }
 
@@ -60,7 +60,7 @@ void loop() {
     if (rx_data.command == CMD_START_INIT) {
       user_start_trigger = true;
       
-      send_feedback( CMD_START_INIT, 0.0, 0.0); 
+      send_feedback( CMD_START_INIT, 0.0, 0.0, 0.0, 0.0); 
     }
 
     if ( user_start_trigger ) {
@@ -168,10 +168,11 @@ void loop() {
     motors_disable();
     
     if (rx_data.command == CMD_CLR_FLT) {
+      last_valid_msg_time = millis();
       sys_error = false;
       error_state = ERR_OK;
 
-      send_feedback(CMD_CLR_FLT, 0.0, 0.0);
+      send_feedback(CMD_CLR_FLT, 0.0, 0.0, 0.0, 0.0);
       
       state = STANDBY;
     }
@@ -193,7 +194,10 @@ void loop() {
     }
 
     // Send status to master
-    send_feedback(status_to_send, mot1_target, mot2_target); 
+    send_feedback(status_to_send, 
+                  motor1.shaft_velocity, motor2.shaft_velocity,
+                  motor1.shaft_angle,    motor2.shaft_angle
+                 ); 
     
     rx_msg_received = false; // wait for the next command
     connection_timer_flag = false;

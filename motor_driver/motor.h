@@ -16,9 +16,6 @@ extern BLDCMotor motor2;
 extern float mot1_target;
 extern float mot2_target; 
 
-// extern MagneticSensorSPI sensor1;
-// extern MagneticSensorSPI sensor2;
-// extern SPIClass SPI_2;
 
 void set_pins_low_setup();
 void motors_setup();

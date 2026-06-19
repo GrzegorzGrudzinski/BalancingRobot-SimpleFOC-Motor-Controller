@@ -5,39 +5,36 @@
 #include "motor.h"
 
 BLDCMotor motor1 = BLDCMotor(M1_PP);
-BLDCDriver3PWM driver1 = BLDCDriver3PWM(M1_A, M1_B, M1_C, M1_EN);
+static BLDCDriver3PWM driver1 = BLDCDriver3PWM(M1_A, M1_B, M1_C, M1_EN);
 
 BLDCMotor motor2 = BLDCMotor(M2_PP);
-BLDCDriver3PWM driver2 = BLDCDriver3PWM(M2_A, M2_B, M2_C, M2_EN);
+static  BLDCDriver3PWM driver2 = BLDCDriver3PWM(M2_A, M2_B, M2_C, M2_EN);
 
-
-
-// Ustawienia dla AS5048 (AS5147_SPI ma identyczną ramkę danych SPI)
-MagneticSensorSPI sensor1 = MagneticSensorSPI(AS5147_SPI, HSPI1_SS);
-MagneticSensorSPI sensor2 = MagneticSensorSPI(AS5147_SPI, HSPI2_SS);
-SPIClass SPI_2(HSPI);
+static MagneticSensorSPI sensor1 = MagneticSensorSPI(AS5147_SPI, HSPI1_SS);
+static MagneticSensorSPI sensor2 = MagneticSensorSPI(AS5147_SPI, HSPI2_SS);
+static SPIClass SPI_2(HSPI);
 
 float mot1_target = 0.0;
 float mot2_target = 0.0;
 
 void set_pins_low_setup() {
-  pinMode(22, OUTPUT);     // Pin EN dla Drivera 2
-  digitalWrite(22, LOW);   // Twarde wyłączenie Drivera 2 (przed startem)
-  pinMode(32, OUTPUT);     // Pin EN dla Drivera 2
-  digitalWrite(32, LOW);   // Twarde wyłączenie Drivera 2 (przed startem)
-  pinMode(33, OUTPUT);     // Pin EN dla Drivera 2
-  digitalWrite(33, LOW);   // Twarde wyłączenie Drivera 2 (przed startem)
-  pinMode(25, OUTPUT);     // Pin EN dla Drivera 2
-  digitalWrite(25, LOW);   // Twarde wyłączenie Drivera 2 (przed startem)
-
-  pinMode(12, OUTPUT);     // Pin EN dla Drivera 2
-  digitalWrite(12, LOW);   // Twarde wyłączenie Drivera 2 (przed startem)
-  pinMode(26, OUTPUT);     // Pin EN dla Drivera 2
-  digitalWrite(26, LOW);   // Twarde wyłączenie Drivera 2 (przed startem)
-  pinMode(27, OUTPUT);     // Pin EN dla Drivera 2
-  digitalWrite(27, LOW);   // Twarde wyłączenie Drivera 2 (przed startem)
-  pinMode(14, OUTPUT);     // Pin EN dla Drivera 2
-  digitalWrite(14, LOW);   // Twarde wyłączenie Drivera 2 (przed startem)
+  pinMode(22, OUTPUT);     
+  digitalWrite(22, LOW);   
+  pinMode(32, OUTPUT);     
+  digitalWrite(32, LOW);   
+  pinMode(33, OUTPUT);     
+  digitalWrite(33, LOW);   
+  pinMode(25, OUTPUT);     
+  digitalWrite(25, LOW);   
+  
+  pinMode(12, OUTPUT);     
+  digitalWrite(12, LOW);   
+  pinMode(26, OUTPUT);     
+  digitalWrite(26, LOW);   
+  pinMode(27, OUTPUT);     
+  digitalWrite(27, LOW);   
+  pinMode(14, OUTPUT);     
+  digitalWrite(14, LOW);   
 }
 
 void motors_setup() {
@@ -264,8 +261,8 @@ void work() {
                 //
                 break;
             case CMD_SET_VAL:
-                mot1_target = - rx_data.value1;
-                mot2_target = - rx_data.value2;
+                mot1_target = rx_data.value1;
+                mot2_target = rx_data.value2;
 
                 if (error_state != ERR_INIT) {
                     sys_error = false;

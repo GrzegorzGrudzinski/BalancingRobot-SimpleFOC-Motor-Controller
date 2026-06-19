@@ -8,17 +8,17 @@
 #include "comm.h"
 #include "motor.h" // for motor object
 
-HardwareSerial SerialCTRL(UART_NR); 
+static HardwareSerial SerialCTRL(UART_NR); 
 
-MotorPacket_t rx_data = {0}; // 
-FeedbackPacket_t tx_data = {0};
+volatile MotorPacket_t rx_data = {0}; // 
+static FeedbackPacket_t tx_data = {0};
 
-uint8_t rx_buffer[FRAME_SIZE]; 
+static uint8_t rx_buffer[FRAME_SIZE]; 
 volatile bool rx_msg_received = false; 
 
 uint32_t last_valid_msg_time = 0;
 bool comm_timeout = false;
-uint32_t last_connection_time = 0;
+static uint32_t last_connection_time = 0;
 volatile bool connection_timer_flag = false; 
 
 
@@ -48,24 +48,22 @@ void doInitMotors(char* cmd) {
 }
 
 // Debug command
-bool debug_enabled = true;
+static bool debug_enabled = true;
 
 void doToggleDebug(char* cmd) {
   debug_enabled = !debug_enabled;
   Serial.println(debug_enabled ? "Debug ON" : "Debug OFF");
 }
-uint32_t last_telemetry_time = 0;
 
 // Motor test mode command
 bool motor_test_enabled_flag = false;
-
 void doToggleTest(char* cmd) {
   motor_test_enabled_flag = !motor_test_enabled_flag;
   Serial.println(motor_test_enabled_flag ? "Test Mode ON" : "Test Mode OFF");
 }
 void doStop(char* cmd) {
     state = STOP;
-    Serial.println(motor_test_enabled_flag ? "Test Mode ON" : "Test Mode OFF");
+    Serial.println(motor_test_enabled_flag ? "Test Mode ON" : "Test Mode OFF");  // TODO
 }
 
 
@@ -155,7 +153,23 @@ void process_commands()
     } // while
 }
 
-const char* getErrorText(error_states_t state)
+
+void send_feedback(uint8_t status_cmd, float mot1_v, float mot2_v, float mot1_p, float mot2_p) {
+    tx_data.startByte = 0xBB;
+    tx_data.status = status_cmd;
+
+    tx_data.value1 = mot1_v;
+    tx_data.value2 = mot2_v; 
+    tx_data.value3 = mot1_p;
+    tx_data.value4 = mot2_p; 
+
+    tx_data.checksum = calculate_checksum((uint8_t*)&tx_data, sizeof(FeedbackPacket_t));
+
+    SerialCTRL.write((uint8_t*)&tx_data, sizeof(FeedbackPacket_t));
+}
+
+
+static const char* getErrorText(error_states_t state)
 {
     switch (state) {
         case ERR_OK:            return "OK";
@@ -169,19 +183,6 @@ const char* getErrorText(error_states_t state)
         case ERR_OPPOSITE_SPIN: return "OPPOSITE_SPIN"; 
         default:                return "UNKNOWN_ERROR";
     }
-}
-
-
-void send_feedback(uint8_t status_cmd, float mot1_v, float mot2_v) {
-    tx_data.startByte = 0xBB;
-    tx_data.status = status_cmd;
-    tx_data.value1 = mot1_v;
-    tx_data.value2 = mot2_v; 
-
-    // Używamy &tx_data, a nie tx_packet
-    tx_data.checksum = calculate_checksum((uint8_t*)&tx_data, sizeof(FeedbackPacket_t));
-
-    SerialCTRL.write((uint8_t*)&tx_data, sizeof(FeedbackPacket_t));
 }
 
 
@@ -207,6 +208,7 @@ void telemetry() {
         }
     }
     else if (debug_enabled) {
+        static uint32_t last_telemetry_time = 0;
         if (millis() - last_telemetry_time > 50) { // 20 Hz
             last_telemetry_time = millis();
             if (!sys_error && !motor_test_enabled_flag ) {

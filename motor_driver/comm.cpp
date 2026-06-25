@@ -10,7 +10,7 @@
 
 static HardwareSerial SerialCTRL(UART_NR); 
 
-volatile MotorPacket_t rx_data = {0}; // 
+MotorPacket_t rx_data = {0}; // 
 static FeedbackPacket_t tx_data = {0};
 
 static uint8_t rx_buffer[FRAME_SIZE]; 

@@ -49,7 +49,7 @@ typedef struct __attribute__((packed)) {
 } FeedbackPacket_t; // feedback to master
 
 //////////////////////
-extern volatile MotorPacket_t rx_data;               // data recieved from master
+extern MotorPacket_t rx_data;               // data recieved from master
 extern volatile bool rx_msg_received;       // message recieved (from master) flag 
 extern uint32_t last_valid_msg_time;        //
 extern volatile bool connection_timer_flag; //

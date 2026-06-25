@@ -93,7 +93,7 @@ extern robot_states_t state;
 // =====================================
 // SAFETY LIMITS
 // =====================================
-#define MOT_LIMIT          1.0   // Motor target limit
+#define MOT_LIMIT          2.0   // Motor target limit
 
 #define STALL_TORQUE_MIN   0.85    // 0.3  // ---- 0.3 Min target (A / V) leading to movement 
 #define STALL_VEL_MAX      1.0   // Max vel. considered as no movement

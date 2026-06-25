@@ -90,6 +90,10 @@ extern robot_states_t state;
 
 #define MOT_VEL_FILTER  0.05f
 
+#define MOT_DIRECTION_CW  1
+#define MOT_DIRECTION_CCW -1
+#define MOT_DIRECTION     MOT_DIRECTION_CCW
+
 // =====================================
 // SAFETY LIMITS
 // =====================================

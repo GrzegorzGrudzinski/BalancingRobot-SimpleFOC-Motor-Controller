@@ -186,8 +186,8 @@ void motors_sync_move(float target1, float target2, bool enable_sync) {
         m2_out += sync_corr;
     }
 
-    m1_out = constrain(m1_out, -MOT_LIMIT, MOT_LIMIT);
-    m2_out = constrain(m2_out, -MOT_LIMIT, MOT_LIMIT);
+    m1_out = MOT_DIRECTION * constrain(m1_out, -MOT_LIMIT, MOT_LIMIT);
+    m2_out = MOT_DIRECTION * constrain(m2_out, -MOT_LIMIT, MOT_LIMIT);
 
     motors_move(m1_out, m2_out);
 }

@@ -44,7 +44,6 @@ void loop() {
   if (foc_initialized) {
     motors_loop_task();
   }
-
   LookForErrors();
 
   // 
@@ -57,27 +56,27 @@ void loop() {
         
         send_feedback( CMD_START_INIT, 0.0, 0.0, 0.0, 0.0); 
       }
-
+      
       if ( user_start_trigger ) {
         Serial.println("Starting FOC calibration... ");
-
+        
         motors_setup();
-
+        
         if (sys_error) {
           state = ERROR;
         } 
         else {
           motors_disable();
-
+          
           Serial.println("Stabilizing filters...");
           for(int i = 0; i < 100; i++) {
-              motor1.sensor->update();
-              motor1.shaft_velocity = motor1.LPF_velocity(motor1.sensor->getVelocity());
-              
-              motor2.sensor->update();
-              motor2.shaft_velocity = motor2.LPF_velocity(motor2.sensor->getVelocity());
-              
-              _delay(2); // 
+            motor1.sensor->update();
+            motor1.shaft_velocity = motor1.LPF_velocity(motor1.sensor->getVelocity());
+            
+            motor2.sensor->update();
+            motor2.shaft_velocity = motor2.LPF_velocity(motor2.sensor->getVelocity());
+            
+            _delay(2); // 
           }
           
           motor1.PID_velocity.reset(); 
@@ -85,7 +84,7 @@ void loop() {
           
           // motor1.enable();
           // motor2.enable();
-
+          
           foc_initialized = true; 
           state = CONNECT;
           last_valid_msg_time = millis();
@@ -94,8 +93,8 @@ void loop() {
         user_start_trigger = false; 
       }
       break;
-
-    case CONNECT: // wait for connection with master
+      
+      case CONNECT: // wait for connection with master
       mot1_target = 0.0;
       mot2_target = 0.0;
       connection_timer();
@@ -105,8 +104,8 @@ void loop() {
         Serial.println("Connection successful - waiting for START command");
       }
       break;
-
-    case INIT: // wait until every component is ready  (implement timeout)
+      
+      case INIT: // wait until every component is ready  (implement timeout)
       mot1_target = 0.0;
       mot2_target = 0.0;
       if (rx_data.command == CMD_INIT) {
@@ -116,13 +115,17 @@ void loop() {
         else {
           state = RUN;
         }
-
+        
         last_valid_msg_time = millis(); // reset timer while master is getting ready
-
+        
+        send_feedback( CMD_START, 0.0, 0.0, 0.0, 0.0); 
+        
         motor1.enable();
         motor2.enable();
-
+        
         Serial.println("Ready - starting to balance");
+        
+        rx_data.command = 0x00;
       }
       break;
     case MOTOR_TEST:
@@ -168,6 +171,7 @@ void loop() {
         sys_error = false;
         error_state = ERR_OK;
         comm_timeout = false;
+        // user_start_trigger = false;
         
         // clear the command to prevent multiple error clearing
         rx_data.command = 0x00;
@@ -192,24 +196,32 @@ void loop() {
     }
   }
 
-
   // Feedback 
-  if (state != (STANDBY) ) {
+  if (state != STANDBY && state != INIT) {
     if (rx_msg_received || (state == CONNECT && connection_timer_flag)) {
     uint8_t status_to_send;
+    float val1 = motor1.shaft_velocity;
+    float val2 = motor2.shaft_velocity;
+    float val3 = motor1.shaft_angle;
+    float val4 = motor2.shaft_angle;
+
     switch (state) {
       case CONNECT: status_to_send = CMD_HELLO_MOTOR; break;
-      case INIT:    status_to_send = CMD_START;       break;
+      // case INIT:    status_to_send = CMD_START;       break;
       case RUN:     status_to_send = CMD_SET_VAL;     break; 
       case STOP:    status_to_send = CMD_STOP;        break;
-      case ERROR:   status_to_send = CMD_ERROR;       break;
+      case ERROR:   
+        status_to_send = CMD_ERROR;       
+        val1 = (float) error_state;
+        val2 = (float) rx_data.command;
+        break;
       default:      status_to_send = CMD_STOP;        break;
     }
 
     // Send status to master
     send_feedback(status_to_send, 
-                  motor1.shaft_velocity, motor2.shaft_velocity,
-                  motor1.shaft_angle,    motor2.shaft_angle
+                  val1 , val2,
+                  val3,  val4
                  ); 
     
     rx_msg_received = false; // wait for the next command
@@ -223,10 +235,9 @@ void LookForErrors() {
   if (state == STANDBY || state == ERROR) {
     return; 
   }
-
   if ( !sys_error ) {
     bool is_working_flag = (state == RUN);
-    check_motors_health(mot1_target, mot2_target, is_working_flag);
+    // check_motors_health(mot1_target, mot2_target, is_working_flag);
   }
 
   if (sys_error || (error_state != ERR_OK) || comm_timeout) {

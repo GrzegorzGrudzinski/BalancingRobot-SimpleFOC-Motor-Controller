@@ -157,7 +157,7 @@ float motors_synchronize(float target1, float target2) {
     static bool is_turning = true;
     float correction = 0.0;
 
-    if (abs(target1 - target2) < 0.05) {
+    if (fabs(target1 - target2) < 0.05) {
         if (is_turning) {
             target_angle_diff = motor1.shaft_angle - motor2.shaft_angle;
             is_turning = false;
@@ -182,8 +182,8 @@ void motors_sync_move(float target1, float target2, bool enable_sync) {
 
     if ( enable_sync ) {
         float sync_corr = motors_synchronize(target1, target2);
-        m1_out -= sync_corr;
-        m2_out += sync_corr;
+        m1_out -= sync_corr * MOT_DIRECTION;
+        m2_out += sync_corr * MOT_DIRECTION;
     }
 
     m1_out = MOT_DIRECTION * constrain(m1_out, -MOT_LIMIT, MOT_LIMIT);
@@ -211,8 +211,8 @@ void check_motors_health(float target1, float target2, bool is_working_flag) {
     // --------------------------------------------------------
     // 1. Stall Detection
     // --------------------------------------------------------
-    bool is_m1_stalled = (abs(target1) > STALL_TORQUE_MIN) && (abs(v1) < STALL_VEL_MAX);
-    bool is_m2_stalled = (abs(target2) > STALL_TORQUE_MIN) && (abs(v2) < STALL_VEL_MAX);
+    bool is_m1_stalled = (fabs(target1) > STALL_TORQUE_MIN) && (fabs(v1) < STALL_VEL_MAX);
+    bool is_m2_stalled = (fabs(target2) > STALL_TORQUE_MIN) && (fabs(v2) < STALL_VEL_MAX);
 
     if (is_m1_stalled || is_m2_stalled) {
         if (millis() - stall_timer > STALL_TIMEOUT_MS) {
@@ -226,7 +226,7 @@ void check_motors_health(float target1, float target2, bool is_working_flag) {
     // --------------------------------------------------------
     // 2. Desync Protection
     // --------------------------------------------------------
-    float vel_difference = abs(v1 - v2);
+    float vel_difference = fabs(v1 - v2);
     if (vel_difference > MAX_DESYNC_VEL_RAD) {
         
         if (millis() - desync_timer > DESYNC_TIMEOUT) { 
@@ -240,7 +240,7 @@ void check_motors_health(float target1, float target2, bool is_working_flag) {
     // --------------------------------------------------------
     // 3. Counter-Rotation / Yaw Spin
     // --------------------------------------------------------
-    if ((v1 * v2 < 0) && (abs(v1) > MAX_OPPOSITE_VEL_RAD) && (abs(v2) > MAX_OPPOSITE_VEL_RAD)) {
+    if ((v1 * v2 < 0) && (fabs(v1) > MAX_OPPOSITE_VEL_RAD) && (fabs(v2) > MAX_OPPOSITE_VEL_RAD)) {
         if (millis() - spin_error_timer > SPIN_TIMEOUT_MS) {
             sys_error = true;
             error_state = ERR_OPPOSITE_SPIN;
@@ -258,7 +258,10 @@ void work() {
 
         switch(rx_data.command) {
             case CMD_HELLO_MASTER :
-                //
+            case CMD_START_INIT:
+                break;
+            case CMD_INIT:
+                send_feedback( CMD_START, 0.0, 0.0, 0.0, 0.0); 
                 break;
             case CMD_SET_VAL:
                 mot1_target = rx_data.value1;

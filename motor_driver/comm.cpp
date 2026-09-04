@@ -154,14 +154,21 @@ void process_commands()
 }
 
 
-void send_feedback(uint8_t status_cmd, float mot1_v, float mot2_v, float mot1_p, float mot2_p) {
+void send_feedback (
+    uint8_t status_cmd,
+    float mot1_v, float mot1_p, float mot1_A, 
+    float mot2_v, float mot2_p, float mot2_A  )
+{
     tx_data.startByte = 0xBB;
     tx_data.status = status_cmd;
 
-    tx_data.value1 = mot1_v;
-    tx_data.value2 = mot2_v; 
-    tx_data.value3 = mot1_p;
-    tx_data.value4 = mot2_p; 
+    tx_data.mot1_vel = mot1_v;
+    tx_data.mot1_pos = mot1_p;  
+    tx_data.mot1_A   = mot1_A; 
+
+    tx_data.mot2_vel = mot2_v;
+    tx_data.mot2_pos = mot2_p;  
+    tx_data.mot2_A   = mot2_A; 
 
     tx_data.checksum = calculate_checksum((uint8_t*)&tx_data, sizeof(FeedbackPacket_t));
 

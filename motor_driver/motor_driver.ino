@@ -54,7 +54,8 @@ void loop() {
       if (rx_data.command == CMD_START_INIT) {
         user_start_trigger = true;
         
-        send_feedback( CMD_START_INIT, 0.0, 0.0, 0.0, 0.0); 
+        // TODO: send init info
+        send_feedback( CMD_START_INIT, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0); 
       }
       
       if ( user_start_trigger ) {
@@ -118,7 +119,7 @@ void loop() {
         
         last_valid_msg_time = millis(); // reset timer while master is getting ready
         
-        send_feedback( CMD_START, 0.0, 0.0, 0.0, 0.0); 
+        send_feedback( CMD_START, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0); 
         
         motor1.enable();
         motor2.enable();
@@ -178,7 +179,7 @@ void loop() {
         rx_msg_received = false;
         last_valid_msg_time = millis(); // reset the watchdog
 
-        send_feedback(CMD_CLR_FLT, 0.0, 0.0, 0.0, 0.0);
+        send_feedback(CMD_CLR_FLT, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
         
         foc_initialized = false;
         state = STANDBY;
@@ -200,10 +201,12 @@ void loop() {
   if (state != STANDBY && state != INIT) {
     if (rx_msg_received || (state == CONNECT && connection_timer_flag)) {
     uint8_t status_to_send;
-    float val1 = motor1.shaft_velocity;
-    float val2 = motor2.shaft_velocity;
-    float val3 = motor1.shaft_angle;
-    float val4 = motor2.shaft_angle;
+    float mot1_v = motor1.shaft_velocity;
+    float mot1_p = motor1.shaft_angle;
+    float mot1_A = motor1.current.q;
+    float mot2_v = motor2.shaft_velocity;
+    float mot2_p = motor2.shaft_angle;
+    float mot2_A = motor2.current.q;
 
     switch (state) {
       case CONNECT: status_to_send = CMD_HELLO_MOTOR; break;
@@ -212,16 +215,16 @@ void loop() {
       case STOP:    status_to_send = CMD_STOP;        break;
       case ERROR:   
         status_to_send = CMD_ERROR;       
-        val1 = (float) error_state;
-        val2 = (float) rx_data.command;
+        mot1_v = (float) error_state;
+        mot2_v = (float) rx_data.command;
         break;
       default:      status_to_send = CMD_STOP;        break;
     }
 
     // Send status to master
     send_feedback(status_to_send, 
-                  val1 , val2,
-                  val3,  val4
+                  mot1_v , mot1_p, mot1_A,
+                  mot1_A,  mot2_v, mot2_A
                  ); 
     
     rx_msg_received = false; // wait for the next command

@@ -55,19 +55,21 @@ extern robot_states_t state;
 // SPI
 #define HSPI_MISO 19 // MISO (Master In Slave Out)
 #define HSPI_MOSI 23 // MOSI (Master Out Slave In)
-#define HSPI_SCLK 18 // Zegar (SCK)
-#define HSPI1_SS  5  // Chip Select (CS) dla silnika 1
-#define HSPI2_SS  15 // Chip Select (CS) dla silnika 2
+#define HSPI_SCLK 18 // CLOCK (SCK)
+#define HSPI1_SS  5  // Chip Select (CS) for motor 1
+#define HSPI2_SS  15 // Chip Select (CS) for motor 2
 
 // =====================================
 // MOTORS & DRIVERS
 // =====================================
+// M0
 #define M1_PP   7
 #define M1_A    32
 #define M1_B    33
 #define M1_C    25
 #define M1_EN   22
 
+// M1
 #define M2_PP   7
 #define M2_A    26
 #define M2_B    27
@@ -75,9 +77,9 @@ extern robot_states_t state;
 #define M2_EN   12
 
 #define DRIVER_V_LIMIT 6
-#define MOT_A_LIMIT 3.0
-#define MOT_V_LIMIT 2.0
-#define MOT_V_ALIGN_LIMIT 0.9
+#define MOT_A_LIMIT 6.0f
+#define MOT_V_LIMIT 2.0f
+#define MOT_V_ALIGN_LIMIT 0.9f
 // #define MOT_TORQUE_CTRL_TYPE TorqueControlType::estimated_current
 // #define MOT_TORQUE_CTRL_TYPE TorqueControlType::voltage
 
@@ -85,8 +87,8 @@ extern robot_states_t state;
 #define MOT_VOLTAGE_CONTROL 0
 
 #define MOT_CONTROL_TYPE MOT_CURRENT_CONTROL
-#define MOT_KV  360.0
-#define MOT_R   0.27
+#define MOT_KV  360.0f
+#define MOT_R   0.27f
 
 #define MOT_VEL_FILTER  0.05f
 
@@ -97,17 +99,25 @@ extern robot_states_t state;
 // =====================================
 // SAFETY LIMITS
 // =====================================
-#define MOT_LIMIT          3.0   // Motor target limit
+#define MOT_LIMIT          3.0f  // Motor target limit
 
-#define STALL_TORQUE_MIN   0.85    // 0.3  // ---- 0.3 Min target (A / V) leading to movement 
-#define STALL_VEL_MAX      1.0   // Max vel. considered as no movement
+#define STALL_TORQUE_MIN   0.85f    // 0.3  // ---- 0.3 Min target (A / V) leading to movement 
+#define STALL_VEL_MAX      1.0f   // Max vel. considered as no movement
 #define STALL_TIMEOUT_MS   500   // Timeout (in ms) of stall before throwing error
 
-#define MAX_DESYNC_VEL_RAD      35.0  // Max vel difference between wheels
-#define MAX_OPPOSITE_VEL_RAD    15.0  // 
-#define SPIN_TIMEOUT_MS         200   // 
+#define MAX_DESYNC_VEL_RAD    35.0f  // Max vel difference between wheels
+#define MAX_OPPOSITE_VEL_RAD  15.0f  // 
+#define SPIN_TIMEOUT_MS       200   // 
 
-#define MOT_K_SYNC_WHEELS 0.2
-#define DESYNC_TIMEOUT  100 // timer to ignore noise
+#define MOT_K_SYNC_WHEELS   0.2f  // [A/rad]
+#define MOT_D_SYNC_WHEELS   0.02f   // [A/(rad/s)] ??
+
+#define MOT_SYNC_MAX        0.5f    // [A]
+
+#define SYNC_TURN_ENTER 0.08f   // above -> turning
+#define SYNC_TURN_EXIT  0.04f   // below -> going
+
+#define DESYNC_TIMEOUT  100     // timer to ignore noise
+
 
 

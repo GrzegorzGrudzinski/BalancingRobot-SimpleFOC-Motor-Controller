@@ -48,7 +48,7 @@ void doInitMotors(char* cmd) {
 }
 
 // Debug command
-static bool debug_enabled = true;
+static bool debug_enabled = false;
 
 void doToggleDebug(char* cmd) {
   debug_enabled = !debug_enabled;
@@ -162,13 +162,13 @@ void send_feedback (
     tx_data.startByte = 0xBB;
     tx_data.status = status_cmd;
 
-    tx_data.mot1_vel = mot1_v;
-    tx_data.mot1_pos = mot1_p;  
-    tx_data.mot1_A   = mot1_A; 
+    tx_data.mot1_vel = MOT_DIRECTION * mot1_v;
+    tx_data.mot1_pos = MOT_DIRECTION * mot1_p;  
+    tx_data.mot1_A   = MOT_DIRECTION * mot1_A; 
 
-    tx_data.mot2_vel = mot2_v;
-    tx_data.mot2_pos = mot2_p;  
-    tx_data.mot2_A   = mot2_A; 
+    tx_data.mot2_vel = MOT_DIRECTION * mot2_v;
+    tx_data.mot2_pos = MOT_DIRECTION * mot2_p;  
+    tx_data.mot2_A   = MOT_DIRECTION * mot2_A; 
 
     tx_data.checksum = calculate_checksum((uint8_t*)&tx_data, sizeof(FeedbackPacket_t));
 

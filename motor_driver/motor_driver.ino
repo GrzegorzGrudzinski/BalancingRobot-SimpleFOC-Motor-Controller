@@ -223,8 +223,8 @@ void loop() {
 
     // Send status to master
     send_feedback(status_to_send, 
-                  mot1_v , mot1_p, mot1_A,
-                  mot1_A,  mot2_v, mot2_A
+                  mot1_v, mot1_p, mot1_A,
+                  mot2_v, mot2_p, mot2_A
                  ); 
     
     rx_msg_received = false; // wait for the next command

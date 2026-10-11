@@ -151,29 +151,35 @@ void motors_stop(){
     motor2.move(0.0);
 }
 
+static bool  sync_latched  = false;   // flag to latch sync until it is complete
+static float sync_ref_diff = 0.0f;    // wheels diff for reference
+static bool  is_turning  = false;   // is robot turning flag
 
 float motors_synchronize(float target1, float target2) {
-    static float target_angle_diff = 0.0;
-    static bool is_turning = true;
-    float correction = 0.0;
 
-    if (fabs(target1 - target2) < 0.05) {
-        if (is_turning) {
-            target_angle_diff = motor1.shaft_angle - motor2.shaft_angle;
-            is_turning = false;
-        }
+    /* check if robot should be turning */
+    float target_diff = fabs(target1 - target2);
+    if (target_diff > SYNC_TURN_ENTER)     is_turning = true;
+    else if (target_diff < SYNC_TURN_EXIT) is_turning = false;
 
-        float current_diff = motor1.shaft_angle - motor2.shaft_angle;
-        float angle_error = current_diff - target_angle_diff;
+    if (is_turning) {
+        sync_latched  = false; // disable sync when turning
+        return 0.0f;
+    }
 
-        correction = angle_error * MOT_K_SYNC_WHEELS;
-        correction = constrain(correction, -0.5, 0.5);
-
-    } else {
-        is_turning = true;
+    float diff = motor1.shaft_angle - motor2.shaft_angle;
+    if (!sync_latched) {
+        sync_ref_diff = diff;
+        sync_latched  = true;
     }
     
-    return correction;
+    float err  = diff - sync_ref_diff;
+    float derr = motor1.shaft_velocity - motor2.shaft_velocity; // 
+
+    float corr = MOT_K_SYNC_WHEELS * err + MOT_D_SYNC_WHEELS * derr;
+    corr = constrain(corr, -MOT_SYNC_MAX, MOT_SYNC_MAX);
+
+    return corr;
 }
 
 void motors_sync_move(float target1, float target2, bool enable_sync) {
@@ -181,9 +187,18 @@ void motors_sync_move(float target1, float target2, bool enable_sync) {
     float m2_out = target2;
 
     if ( enable_sync ) {
-        float sync_corr = motors_synchronize(target1, target2);
-        m1_out -= sync_corr * MOT_DIRECTION;
-        m2_out += sync_corr * MOT_DIRECTION;
+        float sync_corr = motors_synchronize(target1, target2) * MOT_DIRECTION;
+
+        // bit of excess for not clamping only one motor when near limit
+        float excess = fmaxf(0.0f, MOT_LIMIT - fmaxf(fabsf(target1), fabsf(target2)));
+        sync_corr = constrain(sync_corr, -excess, excess);
+
+        m1_out -= sync_corr;
+        m2_out += sync_corr;
+    }
+    else {
+        sync_latched = false;
+        is_turning = false;
     }
 
     m1_out = MOT_DIRECTION * constrain(m1_out, -MOT_LIMIT, MOT_LIMIT);

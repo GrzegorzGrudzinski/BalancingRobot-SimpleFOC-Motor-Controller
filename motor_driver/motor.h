@@ -23,7 +23,7 @@ void motors_disable();
 void motors_loop_task();
 void motors_move(float target1, float target2);
 void motors_stop();
-float motors_synchronize();
+float motors_synchronize(float target1, float target2);
 void motors_sync_move(float target1, float target2, bool enable_sync);
 void check_motors_health(float target1, float target2, bool is_working_flag);
 void work();

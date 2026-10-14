@@ -276,7 +276,8 @@ void work() {
             case CMD_START_INIT:
                 break;
             case CMD_INIT:
-                send_feedback( CMD_START, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);  // TODOL move to motor_driver
+                send_status(CMD_START, error_state);
+                rx_msg_received = false;
                 break;
             case CMD_SET_VAL:
                 mot1_target = rx_data.value1;

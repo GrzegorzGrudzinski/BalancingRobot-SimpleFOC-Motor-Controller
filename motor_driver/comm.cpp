@@ -1,3 +1,4 @@
+#include <stdint.h>
 /*
     comm.cpp
 */
@@ -28,7 +29,8 @@ bool sys_error = false;
 
 // instantiate the commander
 Commander command = Commander(Serial);
-
+// Motor test mode command
+bool motor_test_enabled_flag = false;
 //
 void doTarget(char* cmd) { 
     if (motor_test_enabled_flag) {
@@ -48,6 +50,7 @@ void doInitMotors(char* cmd) {
 }
 
 // Debug command
+#define SERIAL_DEBUG 1
 static bool debug_enabled = false;
 
 void doToggleDebug(char* cmd) {
@@ -55,8 +58,6 @@ void doToggleDebug(char* cmd) {
   Serial.println(debug_enabled ? "Debug ON" : "Debug OFF");
 }
 
-// Motor test mode command
-bool motor_test_enabled_flag = false;
 void doToggleTest(char* cmd) {
   motor_test_enabled_flag = !motor_test_enabled_flag;
   Serial.println(motor_test_enabled_flag ? "Test Mode ON" : "Test Mode OFF");
@@ -68,19 +69,20 @@ void doStop(char* cmd) {
 
 
 //////////////////////////////
-
 void comm_init() {
-  Serial.begin(115200);
-  SimpleFOCDebug::enable(&Serial);
- 
-  command.add('T', doTarget, "Target current");
-  command.add('D', doToggleDebug, "Toggle Debug Telemetry");
-  command.add('S', doToggleTest, "Toggle Motor Test Mode"); //
-  command.add('I', doInitMotors, "Init/Start FOC"); 
-  command.add('X', doStop, "Stop motors"); 
+#if SERIAL_DEBUG
+    Serial.begin(115200);
+    SimpleFOCDebug::enable(&Serial);
+    
+    command.add('T', doTarget, "Target current");
+    command.add('D', doToggleDebug, "Toggle Debug Telemetry");
+    command.add('S', doToggleTest, "Toggle Motor Test Mode"); //
+    command.add('I', doInitMotors, "Init/Start FOC"); 
+    command.add('X', doStop, "Stop motors"); 
+#endif
 
   // communication with master
-  SerialCTRL.begin(115200, SERIAL_8N1, RX_PIN, TX_PIN);
+  SerialCTRL.begin(COMM_BAUD, SERIAL_8N1, RX_PIN, TX_PIN);
 }
 
 void connection_timer() {
@@ -111,9 +113,7 @@ void process_commands()
 
     while (SerialCTRL.available() > 0) {
         uint8_t incoming_byte = SerialCTRL.read();
-        // if (incoming_byte == 0xAA && rx_state == 1 && rx_index > 0 && rx_index < sizeof(MotorPacket_t)) {
-        //     rx_index = 0;
-        // }
+
         if (rx_state == 0) {
             if (incoming_byte == 0xAA) { // Start byte found
                 rx_buffer[0] = incoming_byte;
@@ -130,17 +130,14 @@ void process_commands()
                 //calcuate checksum and verify
                 uint8_t checksum = calculate_checksum(rx_buffer, FRAME_SIZE);
                 if (rx_buffer[FRAME_SIZE-1] == checksum) {
-                    // Valid packet
-                    // memcpy(&rx_data, rx_buffer, FRAME_SIZE);
-
-                    // MotorPacket_t* recieved_pkt = (MotorPacket_t*)rx_buffer;
-                    // rx_data = *recieved_pkt;
-
-                    rx_data.startByte = rx_buffer[0];
-                    rx_data.command   = rx_buffer[1];
-                    memcpy(&rx_data.value1, &rx_buffer[2], sizeof(float)); // float 1
-                    memcpy(&rx_data.value2, &rx_buffer[6], sizeof(float)); // float 2
-                    rx_data.checksum  = rx_buffer[10];
+                    // rx_data.startByte = rx_buffer[0];
+                    // rx_data.command   = rx_buffer[1];
+                    // memcpy(&rx_data.value1, &rx_buffer[2], sizeof(uint16_t));
+                    // memcpy(&rx_data.value1, &rx_buffer[4], sizeof(float)); // float 1
+                    // memcpy(&rx_data.value2, &rx_buffer[8], sizeof(float)); // float 2
+                    // rx_data.checksum  = rx_buffer[12];
+                    
+                    memcpy(&rx_data, rx_buffer, FRAME_SIZE);
 
                     rx_msg_received = true;
                 }
@@ -153,14 +150,17 @@ void process_commands()
     } // while
 }
 
-
+static uint16_t tx_seq = 0;
 void send_feedback (
-    uint8_t status_cmd,
+    uint8_t status_cmd, uint8_t error,
     float mot1_v, float mot1_p, float mot1_A, 
     float mot2_v, float mot2_p, float mot2_A  )
 {
     tx_data.startByte = 0xBB;
     tx_data.status = status_cmd;
+    tx_data.error  = error;
+    tx_data.rx_seq = rx_data.seq;    
+    tx_data.tx_seq = tx_seq++ ;    
 
     tx_data.mot1_vel = MOT_DIRECTION * mot1_v;
     tx_data.mot1_pos = MOT_DIRECTION * mot1_p;  

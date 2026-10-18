@@ -12,7 +12,7 @@
   STM PA2 -> TX   ESP -> 16 (RX) 
   STM PA3 -> RX   ESP -> 17 (TX) (czarne)
 */
-#define COMM_BAUD 115200 
+#define COMM_BAUD  460800 // 115200 
 
 #define FRAME_SIZE 13
 

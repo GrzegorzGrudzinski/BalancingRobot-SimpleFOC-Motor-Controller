@@ -50,6 +50,20 @@ void loop() {
   switch (state) {
     case STANDBY:
       motors_disable();
+      
+      // Respond to master
+      if (rx_msg_received) {
+        if (rx_data.command == CMD_STOP) {
+          send_status(CMD_STOP, error_state);
+        } 
+        else if (rx_data.command == CMD_CLR_FLT) {
+          sys_error    = false;
+          error_state  = ERR_OK;
+          comm_timeout = false;
+          send_status(CMD_CLR_FLT, error_state);
+        }
+        rx_msg_received = false;
+      }
 
       if (rx_data.command == CMD_START_INIT) {
         user_start_trigger = true;
@@ -59,9 +73,10 @@ void loop() {
       }
 
       if (user_start_trigger) {
-        Serial.println("Starting FOC calibration... ");
-
-        motors_setup();
+        if (!foc_initialized) {
+          Serial.println("Starting FOC calibration... ");
+          motors_setup();
+        }
 
         if (sys_error) {
           state = ERROR;
@@ -156,16 +171,13 @@ void loop() {
 
     case STOP:  //
       motors_disable();
-
       state = STANDBY;
-
       break;
 
     case ERROR:  // error state
       motors_disable();
 
       if (rx_data.command == CMD_CLR_FLT) {
-
         // clear the flags
         sys_error = false;
         error_state = ERR_OK;

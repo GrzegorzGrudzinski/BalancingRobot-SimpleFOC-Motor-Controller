@@ -283,10 +283,6 @@ void work() {
                 mot1_target = rx_data.value1;
                 mot2_target = rx_data.value2;
 
-                if (error_state != ERR_INIT) {
-                    sys_error = false;
-                    error_state = ERR_OK;
-                }
                 break;
             case CMD_STOP: // STOP (Upadek)
                 motor1.disable();

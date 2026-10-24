@@ -38,7 +38,7 @@ extern robot_states_t state;
 #define TX_PIN 17  // ESP32 TX Pin
 #define UART_NR 2
 
-#define COMM_TIMEOUT_MS 500 // 0.5 sec
+#define COMM_TIMEOUT_MS 50 // 0.05 sec
 
 // =====================================
 // ENCODERS

@@ -257,7 +257,7 @@ void LookForErrors() {
   }
   if (!sys_error) {
     bool is_working_flag = (state == RUN);
-    // check_motors_health(mot1_target, mot2_target, is_working_flag);
+    check_motors_health(mot1_target, mot2_target, is_working_flag);
   }
 
   if (sys_error || (error_state != ERR_OK) || comm_timeout) {

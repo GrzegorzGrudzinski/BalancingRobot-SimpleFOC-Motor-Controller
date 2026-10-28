@@ -67,9 +67,6 @@ void loop() {
 
       if (rx_data.command == CMD_START_INIT) {
         user_start_trigger = true;
-
-        // TODO: send init info
-        send_status(CMD_START_INIT, error_state);
       }
 
       if (user_start_trigger) {
@@ -77,6 +74,8 @@ void loop() {
           Serial.println("Starting FOC calibration... ");
           motors_setup();
         }
+        send_status(CMD_START_INIT, error_state);
+
 
         if (sys_error) {
           state = ERROR;
@@ -178,6 +177,8 @@ void loop() {
       motors_disable();
 
       if (rx_data.command == CMD_CLR_FLT) {
+        bool init_failed = (error_state == ERR_INIT);
+
         // clear the flags
         sys_error = false;
         error_state = ERR_OK;
@@ -190,8 +191,13 @@ void loop() {
         last_valid_msg_time = millis();  // reset the watchdog
 
         send_status(CMD_CLR_FLT, error_state);
+        
+        if (init_failed) {
+          _delay(5);     // to make sure uart delivers message
+          ESP.restart(); //
+        }
 
-        foc_initialized = false;
+        // foc_initialized = false;
         state = STANDBY;
       }
 

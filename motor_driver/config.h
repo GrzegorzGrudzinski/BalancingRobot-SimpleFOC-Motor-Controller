@@ -119,5 +119,16 @@ extern robot_states_t state;
 
 #define DESYNC_TIMEOUT  100     // timer to ignore noise
 
+// =====================================
+// FRICTION COMPENSATION (step 14.12)
+// =====================================
+#define FRIC_COMP_DEFAULT   1        // state after boot: 0 off, 1 on; 'F0'/'F1' over USB changes it
+#define FRIC_I_COULOMB      0.215f   // [A] kinetic friction (both motors 0.21-0.22 A)
+#define FRIC_K_KINETIC      0.7f     // [-] share compensated while turning (< 1: no negative damping)
+#define FRIC_W_SMOOTH       0.5f     // [rad/s] tanh width
+#define FRIC_W_STUCK        0.3f     // [rad/s] below: wheel counts as stuck
+#define FRIC_I_BREAKAWAY    0.15f    // [A] well below the smallest break-away (0.35 A)
+#define FRIC_I_DEAD         0.05f    // [A] no help for smaller commands
+#define FRIC_I_RAMP         0.15f    // [A] help reaches full value at FRIC_I_DEAD + FRIC_I_RAMP
 
 

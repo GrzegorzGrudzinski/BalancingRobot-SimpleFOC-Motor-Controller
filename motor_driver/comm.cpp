@@ -57,7 +57,12 @@ void doToggleDebug(char* cmd) {
   debug_enabled = !debug_enabled;
   Serial.println(debug_enabled ? "Debug ON" : "Debug OFF");
 }
-
+// Friction compensation: 'F1' on, 'F0' off, 'F' prints the state
+void doFrictionComp(char* cmd) {
+    if (cmd[0] == '1')      friction_comp_on = true;
+    else if (cmd[0] == '0') friction_comp_on = false;
+    Serial.println(friction_comp_on ? "Friction comp ON" : "Friction comp OFF");
+}
 void doToggleTest(char* cmd) {
   motor_test_enabled_flag = !motor_test_enabled_flag;
   Serial.println(motor_test_enabled_flag ? "Test Mode ON" : "Test Mode OFF");
@@ -76,6 +81,7 @@ void comm_init() {
     
     command.add('T', doTarget, "Target current");
     command.add('D', doToggleDebug, "Toggle Debug Telemetry");
+    command.add('F', doFrictionComp, "Friction comp: F1 on, F0 off");
     command.add('S', doToggleTest, "Toggle Motor Test Mode"); //
     command.add('I', doInitMotors, "Init/Start FOC"); 
     command.add('X', doStop, "Stop motors"); 

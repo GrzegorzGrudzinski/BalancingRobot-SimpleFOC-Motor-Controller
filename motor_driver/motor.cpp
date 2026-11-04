@@ -3,6 +3,7 @@
 */
 
 #include "motor.h"
+#include "src/friction/friction_comp.h"
 
 BLDCMotor motor1 = BLDCMotor(M1_PP);
 static BLDCDriver3PWM driver1 = BLDCDriver3PWM(M1_A, M1_B, M1_C, M1_EN);
@@ -16,6 +17,18 @@ static SPIClass SPI_2(HSPI);
 
 float mot1_target = 0.0;
 float mot2_target = 0.0;
+
+// friction compensation, one set per wheel; field order as in FrictionComp_t
+static FrictionComp_t fric_m1 = { FRIC_I_COULOMB, FRIC_K_KINETIC, FRIC_W_SMOOTH, FRIC_W_STUCK,
+                                  FRIC_I_BREAKAWAY, FRIC_I_DEAD, FRIC_I_RAMP };
+static FrictionComp_t fric_m2 = { FRIC_I_COULOMB, FRIC_K_KINETIC, FRIC_W_SMOOTH, FRIC_W_STUCK,
+                                  FRIC_I_BREAKAWAY, FRIC_I_DEAD, FRIC_I_RAMP };
+bool friction_comp_on = (FRIC_COMP_DEFAULT != 0);
+
+// last compensation per wheel [A, STM frame], for debug prints
+float fric_comp1 = 0.0f;
+float fric_comp2 = 0.0f;
+
 
 void set_pins_low_setup() {
   pinMode(22, OUTPUT);     
@@ -182,27 +195,38 @@ float motors_synchronize(float target1, float target2) {
     return corr;
 }
 
-void motors_sync_move(float target1, float target2, bool enable_sync) {
-    float m1_out = target1;
-    float m2_out = target2;
-
+void motors_sync_move(float target1, float target2, bool enable_sync, bool enable_comp) {
+    // 1. wheel sync correction (STM frame), from the STM commands only
+    float sync_corr = 0.0f;
     if ( enable_sync ) {
-        float sync_corr = motors_synchronize(target1, target2) * MOT_DIRECTION;
-
-        // bit of excess for not clamping only one motor when near limit
-        float excess = fmaxf(0.0f, MOT_LIMIT - fmaxf(fabsf(target1), fabsf(target2)));
-        sync_corr = constrain(sync_corr, -excess, excess);
-
-        m1_out -= sync_corr;
-        m2_out += sync_corr;
-    }
-    else {
+        sync_corr = motors_synchronize(target1, target2) * MOT_DIRECTION;   
+    } else {
         sync_latched = false;
         is_turning = false;
     }
+    
+    // 2. friction compensation per wheel (STM frame).
+    //    Direction of the break-away help: the STM command, without the sync correction. 
+    //    Stuck or turning: each wheel from its own speed, stiction holds each wheel separately.
+    //    shaft_velocity is in the motor frame -> MOT_DIRECTION brings it to the STM frame.
+    float comp1 = 0.0f;
+    float comp2 = 0.0f;
+    if ( enable_comp ) {
+        comp1 = frictionComp(&fric_m1, target1, MOT_DIRECTION * motor1.shaft_velocity);
+        comp2 = frictionComp(&fric_m2, target2, MOT_DIRECTION * motor2.shaft_velocity);
+    }
+    fric_comp1 = comp1;
+    fric_comp2 = comp2;
 
-    m1_out = MOT_DIRECTION * constrain(m1_out, -MOT_LIMIT, MOT_LIMIT);
-    m2_out = MOT_DIRECTION * constrain(m2_out, -MOT_LIMIT, MOT_LIMIT);
+    float base1 = target1 + comp1;
+    float base2 = target2 + comp2;
+
+    // 3. bit of excess for not clamping only one motor when near limit (compensation included)
+    float excess = fmaxf(0.0f, MOT_LIMIT - fmaxf(fabsf(base1), fabsf(base2)));
+    sync_corr = constrain(sync_corr, -excess, excess);
+
+    float m1_out = MOT_DIRECTION * constrain(base1 - sync_corr, -MOT_LIMIT, MOT_LIMIT);
+    float m2_out = MOT_DIRECTION * constrain(base2 + sync_corr, -MOT_LIMIT, MOT_LIMIT);
 
     motors_move(m1_out, m2_out);
 }

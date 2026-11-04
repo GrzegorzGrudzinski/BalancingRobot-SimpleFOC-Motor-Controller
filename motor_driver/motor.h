@@ -16,6 +16,9 @@ extern BLDCMotor motor2;
 extern float mot1_target;
 extern float mot2_target; 
 
+extern bool  friction_comp_on;
+extern float fric_comp1; // for debug
+extern float fric_comp2; // for debug
 
 void set_pins_low_setup();
 void motors_setup();
@@ -24,6 +27,6 @@ void motors_loop_task();
 void motors_move(float target1, float target2);
 void motors_stop();
 float motors_synchronize(float target1, float target2);
-void motors_sync_move(float target1, float target2, bool enable_sync);
+void motors_sync_move(float target1, float target2, bool enable_sync, bool enable_comp);
 void check_motors_health(float target1, float target2, bool is_working_flag);
 void work();

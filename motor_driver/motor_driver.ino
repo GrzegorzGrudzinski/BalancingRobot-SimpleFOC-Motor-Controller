@@ -205,11 +205,13 @@ void loop() {
   }
 
   if (foc_initialized) {
+    bool comp_enabled_flag = friction_comp_on && error_state == ERR_OK
+                             && (state == RUN || state == MOTOR_TEST);
     if (state == MOTOR_TEST) {
-      motors_sync_move(mot1_target, mot2_target, false);
+      motors_sync_move(mot1_target, mot2_target, false, comp_enabled_flag);
     } else {
       bool sync_enabled_flag = (state == RUN && error_state == ERR_OK);
-      motors_sync_move(mot1_target, mot2_target, sync_enabled_flag);
+      motors_sync_move(mot1_target, mot2_target, sync_enabled_flag, comp_enabled_flag);
     }
   }
 

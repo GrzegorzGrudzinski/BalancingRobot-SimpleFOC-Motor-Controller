@@ -45,7 +45,12 @@ void loop() {
     motors_loop_task();
   }
   LookForErrors();
-
+  
+  // if Master restarted return to STANDBY
+  if ((state == CONNECT || state == INIT) && rx_msg_received &&
+      (rx_data.command == CMD_START_INIT || rx_data.command == CMD_STOP)) {
+    state = STANDBY;
+  }
   //
   switch (state) {
     case STANDBY:
